@@ -59,7 +59,7 @@ public class Referee implements Piece{
 				P2.printBoard(System.out);
 				System.exit(1);
 			}			
-			else if(P2.getWinner()==0  && P1.getWinner()==0){
+			else if(P2.getWinner()==0  && P1.getWinner()==0 && boardEmptyPieces>0){
 				NumberofMoves++;
 				if (P2.opponentMove(lastPlayedMove)>0){
 					lastPlayedMove = P1.makeMove();
@@ -84,7 +84,7 @@ public class Referee implements Piece{
 				P1.printBoard(System.out);
 				System.exit(1);
 			}
-			else if(P2.getWinner()==0  && P1.getWinner()==0){
+			else if(P2.getWinner()==0  && P1.getWinner()==0 && boardEmptyPieces>0){
                                 NumberofMoves++;
                                 if (P1.opponentMove(lastPlayedMove)>0){
                                         lastPlayedMove = P2.makeMove();
@@ -110,7 +110,7 @@ public class Referee implements Piece{
 		P1.printBoard(System.out);
 		
 		System.out.println("Player one (BLUE) indicate winner as: "+ P1.getWinner());
-		System.out.println("Player two (BRED) indicate winner as: "+ P2.getWinner());
+		System.out.println("Player two (RED) indicate winner as: "+ P2.getWinner());
 		System.out.println("Total Number of Moves Played in the Game: "+ NumberofMoves);
 		System.out.println("Referee Finished !");
 	}
