@@ -7,7 +7,7 @@ import java.awt.geom.Point2D;
 
 class Edge {
 	private Shape sh;
-	public Color color = Color.BLACK;
+	public Color color = Color.LIGHT_GRAY;
 	
 	public Edge(Point2D start, Point2D end) {
 		sh = new Line2D.Double(start.getX(), start.getY(), end.getX(), end.getY());
