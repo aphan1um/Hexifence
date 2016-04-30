@@ -1,0 +1,22 @@
+=======================  Create/Leave Room:  =======================
+CRT <game name> <password>
+
+If game name has been taken:	DNY
+If game can be made:			ACT <id>
+
+If owner leaves the room, then the room is deleted. Send this to all players:
+DEL <id>
+
+
+=======================  User joins game:  =======================
+JON <id>
+
+=======================  User starts game:  =======================
+SRT <id>
+
+If a user leaves the game, then DEL <id> will be called to inform all players
+the game has terminated early.
+
+=======================  User starts game:  =======================
+NOTE: No move checking (as of yet)
+

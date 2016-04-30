@@ -8,9 +8,13 @@ import java.awt.geom.Point2D;
 class Edge {
 	private Shape sh;
 	public Color color = Color.LIGHT_GRAY;
+	public int x, y;
+	public boolean selectable = true;
 	
-	public Edge(Point2D start, Point2D end) {
+	public Edge(Point2D start, Point2D end, int x, int y) {
 		sh = new Line2D.Double(start.getX(), start.getY(), end.getX(), end.getY());
+		this.x = x;
+		this.y = y;
 	}
 
 	public void paint(Graphics g) {
