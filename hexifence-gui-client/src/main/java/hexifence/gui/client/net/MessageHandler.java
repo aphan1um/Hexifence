@@ -1,3 +1,6 @@
+package hexifence.gui.client.net;
+
+
 /**
  * Message handler.
  * 

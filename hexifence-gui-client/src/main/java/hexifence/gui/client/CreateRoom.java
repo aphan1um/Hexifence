@@ -1,4 +1,4 @@
-import java.awt.Component;
+package hexifence.gui.client;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.Insets;
@@ -8,6 +8,8 @@ import java.awt.event.ActionListener;
 import javax.swing.*;
 import javax.swing.JSpinner.DefaultEditor;
 import javax.swing.border.EmptyBorder;
+
+import hexifence.gui.client.net.PacketHandler;
 
 public class CreateRoom extends JDialog {
 	private JTextField txt_room_name;

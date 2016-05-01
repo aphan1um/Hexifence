@@ -1,3 +1,4 @@
+package hexifence.gui.client;
 import java.awt.*;
 import java.awt.Dialog.ModalityType;
 import java.awt.event.ActionEvent;

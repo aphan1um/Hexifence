@@ -1,9 +1,7 @@
 package hexifence.gui.core;
 
 public class GameRoom implements java.io.Serializable {
-	/**
-	 * 
-	 */
+	/** Serial version UID. */
 	private static final long serialVersionUID = 4418396005311045882L;
 	public String room_name;
 	public int id;

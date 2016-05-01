@@ -1,8 +1,12 @@
-import java.awt.Frame;
+package hexifence.gui.client.net;
+
 import java.awt.Window;
 
-import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+
+import hexifence.gui.client.FrameBoard;
+import hexifence.gui.client.Driver;
+import hexifence.gui.client.MainMenu;
 
 public class PacketHandler implements MessageHandler {
 	public static Window CURR_WINDOW = null;
@@ -31,7 +35,6 @@ public class PacketHandler implements MessageHandler {
 		
 		case "RDY":
 			USER_ID = Integer.valueOf(tokens[1]);
-			System.out.println("USER_ID = " + USER_ID);
 			MENU_WINDOW.enableWindow();
 			break;
 			
@@ -52,6 +55,7 @@ public class PacketHandler implements MessageHandler {
 				CURR_WINDOW = null;
 			}
 			
+			System.out.println("Got here");
 			// token[2] = dim
 			initBoard(Integer.valueOf(tokens[2]), tokens[3]);
 
@@ -64,7 +68,7 @@ public class PacketHandler implements MessageHandler {
 				    JOptionPane.ERROR_MESSAGE);
 			
 		case "QUE":
-			if (!(CURR_WINDOW instanceof BoardFrame)) {
+			if (!(CURR_WINDOW instanceof FrameBoard)) {
 				break;
 			}
 			
@@ -72,29 +76,29 @@ public class PacketHandler implements MessageHandler {
 			System.out.println(tokens[1]);
 			if (Integer.valueOf(tokens[1]) == 0) {
 
-				((BoardFrame)CURR_WINDOW).addPlayer(tokens[3], Integer.valueOf(tokens[2]));
+				((FrameBoard)CURR_WINDOW).addPlayer(tokens[3], Integer.valueOf(tokens[2]));
 			} else {
-				((BoardFrame)CURR_WINDOW).removePlayer(Integer.valueOf(tokens[2]));
+				((FrameBoard)CURR_WINDOW).removePlayer(Integer.valueOf(tokens[2]));
 			}
 			
 			break;
 		
 		// start game packet
 		case "SRT":
-			if (!(CURR_WINDOW instanceof BoardFrame)) {
+			if (!(CURR_WINDOW instanceof FrameBoard)) {
 				break;
 			}
 			
-			((BoardFrame)CURR_WINDOW).startGame(Integer.valueOf(tokens[1]));
+			((FrameBoard)CURR_WINDOW).nextTurn(Integer.valueOf(tokens[1]));
 			break;
 		
 		// confirmed move packet
 		case "CON":
-			if (!(CURR_WINDOW instanceof BoardFrame)) {
+			if (!(CURR_WINDOW instanceof FrameBoard)) {
 				break;
 			}
 			
-			((BoardFrame)CURR_WINDOW).confirmMove(Integer.valueOf(tokens[1]), Integer.valueOf(tokens[2]), Integer.valueOf(tokens[3]));
+			((FrameBoard)CURR_WINDOW).confirmMove(Integer.valueOf(tokens[1]), Integer.valueOf(tokens[2]), Integer.valueOf(tokens[3]));
 			break;
 		}
 		
@@ -106,7 +110,7 @@ public class PacketHandler implements MessageHandler {
 		int r = 40;
 		int offset = 20;
 
-		CURR_WINDOW = new BoardFrame(r, offset, dim, boardName);
+		CURR_WINDOW = new FrameBoard(r, offset, dim, boardName);
 		CURR_WINDOW.toFront();
 		CURR_WINDOW.setLocationRelativeTo(null);
 		

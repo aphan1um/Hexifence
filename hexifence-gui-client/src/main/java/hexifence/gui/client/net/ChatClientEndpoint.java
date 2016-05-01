@@ -1,7 +1,6 @@
-/**
- * ChatClientEndpoint.java
- * http://programmingforliving.com
- */
+package hexifence.gui.client.net;
+
+
 
 import java.net.URI;
 
