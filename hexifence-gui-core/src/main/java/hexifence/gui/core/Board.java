@@ -41,6 +41,10 @@ public abstract class Board<T extends Edge> {
 		return dim;
 	}
 	
+	public List<Cell> getCells() {
+		return cells;
+	}
+	
 	/** Get the edges of the game board.
 	 */
 	public T[][] getEdges() {

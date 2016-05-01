@@ -8,7 +8,8 @@ public enum ClientPacket {
 	ROOM_NOT_FOUND("FAL"),
 	ROOM_STATUS_NEW("QUE"),
 	ROOM_START("SRT"),
-	MOVE_CONFIRMED("CON");
+	MOVE_CONFIRMED("CON"),
+	GAME_FINISHED("FIN");
 	
 	private final String packet_name;
 

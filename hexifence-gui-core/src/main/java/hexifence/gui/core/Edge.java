@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** Represents a side of one or more cells. */
-public abstract class Edge {
+public class Edge {
 	public Point location;
 	private List<Cell> adj_cells;
 	
@@ -44,13 +44,24 @@ public abstract class Edge {
 	}
 
 	/** Mark the cell as being occupied by a player.
+	 * 
+	 * @return Returns the number of cells captured by player
+	 * (0 if none).
 	 */
-	public void useCell() {
+	public int useCell() {
+		int cells_captured = 0;
+		
 		for (Cell c : adj_cells) {
 			c.decrementNumOpen();
+			
+			if (c.getNumOpen() == 0) {
+				cells_captured++;
+			}
 		}
 		
 		// now make adj_cells null, as indication this edge is not open
 		adj_cells = null;
+		
+		return cells_captured;
 	}
 }

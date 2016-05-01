@@ -27,7 +27,7 @@ public class SocketHandler {
 	    		// remove the player from room (if any) before
 	    		// removing from serverlist
 	    		removeFromRoom(user);
-	    		ServerMain.players.remove(user);
+	    		Main.players.remove(user);
 				
 				System.out.println("A player has left the websocket.");
 			} catch (IOException e) {
@@ -40,23 +40,24 @@ public class SocketHandler {
 	    	String[] token = message.split(" ");
 	    	GameRoom match_room = null;
 	    	GameRoom game_room;
-	    	ServerRoomData sev_data;
+	    	Room sev_data;
 
 	    	ServerPacket packet = ServerPacket.fromString(token[0]);
+	    	System.out.println(message);
 	    	
 	    	switch (packet) {
 	    	case SERVER_ADDED_USER:
-	    		ServerMain.createPlayer(user, token[1]);
+	    		Main.createPlayer(user, token[1]);
 	    		System.out.println("Request for player's name successful.");
 
 	    		// indicate success of adding user to server
-	    		user.getRemote().sendString("RDY " + ServerMain.players.get(user).id);
+	    		user.getRemote().sendString("RDY " + Main.players.get(user).id);
 	    		break;
 	    	
 	    	case CREATE_ROOM:
 	    		boolean fail = false;
 	    		
-	    		for (GameRoom r : ServerMain.rooms.keySet()) {
+	    		for (GameRoom r : Main.rooms.keySet()) {
 	    			if (r.toString().equals(token[1])) {
 	    				fail = true;
 	    				break;
@@ -66,8 +67,8 @@ public class SocketHandler {
 	    		if (fail) {
 	    			user.getRemote().sendString("REJ");
 	    		} else {
-	    			GameRoom new_room = ServerMain.createRoom(user, token[1], Integer.valueOf(token[2]));
-	    			ServerMain.players.get(user).curr_game = new_room;
+	    			GameRoom new_room = Main.createRoom(user, token[1], Integer.valueOf(token[2]));
+	    			Main.players.get(user).curr_game = new_room;
 	    			
 	    			user.getRemote().sendString("ACT " + new_room.id + " " + new_room.dim + " " + new_room.room_name);
 	    			System.out.println("A room has been created.");
@@ -77,7 +78,7 @@ public class SocketHandler {
 	    		
 	    	case USER_JOINED_ROOM:
 	    		// find the room with matching id
-	    		for (GameRoom r : ServerMain.rooms.keySet()) {
+	    		for (GameRoom r : Main.rooms.keySet()) {
 	    			// ensure game is still open (not started)
 	    			if (r.started == false && r.id == Integer.valueOf(token[1])) {
 	    				match_room = r;
@@ -93,15 +94,15 @@ public class SocketHandler {
 	    			user.getRemote().sendString("ACT " + match_room.id + " " + match_room.dim + " " + match_room.room_name);
 	    			
 	    			// inform others in the room that a player has joined
-	    			for (Session s : ServerMain.rooms.get(match_room).users) {
-	    				PlayerData p_data = ServerMain.players.get(s);
+	    			for (Session s : Main.rooms.get(match_room).users) {
+	    				PlayerData p_data = Main.players.get(s);
 	    				
 	    				s.getRemote().sendString("QUE 0 " + p_data.id + " " + p_data.name);
 	    			}
 	    			
 	    			// add player to the room
-	    			ServerMain.rooms.get(match_room).users.add(user);
-	    			ServerMain.players.get(user).curr_game = match_room;
+	    			Main.rooms.get(match_room).users.add(user);
+	    			Main.players.get(user).curr_game = match_room;
 	    		}
 	    		
 	    		break;
@@ -113,36 +114,56 @@ public class SocketHandler {
 	    		
 	    	case GAME_BEGIN:
 	    		// indicate the game room has begun
-	    		game_room = ServerMain.players.get(user).curr_game;
-	    		sev_data = ServerMain.rooms.get(game_room);
+	    		game_room = Main.players.get(user).curr_game;
+	    		sev_data = Main.rooms.get(game_room);
 	    		game_room.started = true;
 	    		
 	    		// generate random index to give to first player
 	    		int index_first_player = new Random().nextInt(sev_data.users.size());
 	    		sev_data.curr_index_player = index_first_player;
-	    		int id_first_player = ServerMain.players.get(sev_data.users.get(index_first_player)).id;
+	    		int id_first_player = Main.players.get(sev_data.users.get(index_first_player)).id;
 	    		
 	    		// inform other players to begin game
-				for (Session s : ServerMain.rooms.get(game_room).users) {
+				for (Session s : Main.rooms.get(game_room).users) {
 					s.getRemote().sendString("SRT " + id_first_player);
 				}
 	    		
 	    		break;
 	    		
 	    	case GAME_NEXT_MOVE:
-	    		game_room = ServerMain.players.get(user).curr_game;
-	    		sev_data = ServerMain.rooms.get(game_room);
+	    		game_room = Main.players.get(user).curr_game;
+	    		sev_data = Main.rooms.get(game_room);
 	    		
-	    		// get the next player
-	    		sev_data.curr_index_player++;
-	    		sev_data.curr_index_player %= sev_data.users.size();
+	    		int id_next = sev_data.curr_index_player;
 	    		
-	    		int id_next = ServerMain.players.get(sev_data.users.get(sev_data.curr_index_player)).id;
+	    		int cells_captured = sev_data.sev_board.getEdges()[Integer.valueOf(token[1])][Integer.valueOf(token[2])].useCell();
 	    		
-	    		// inform other players the next player, and the confirmed move
-				for (Session s : sev_data.users) {
-					s.getRemote().sendString("CON " + token[1] + " " + token[2] + " " + id_next);
-				}
+	    		// if cell has been captured, the current player will keep his/her turn;
+	    		// otherwise the next player goes
+	    		if (cells_captured == 0) {
+	    			// get the next player
+		    		sev_data.curr_index_player++;
+		    		sev_data.curr_index_player %= sev_data.users.size();
+		    		
+		    		id_next = Main.players.get(sev_data.users.get(sev_data.curr_index_player)).id;
+	    		} else {
+	    			sev_data.sev_board.num_cells_open -= cells_captured;
+	    		}
+				
+				// if game has ended
+	    		if (sev_data.sev_board.num_cells_open == 0) {
+	    			System.out.println("A game has ended; removing game...");
+					for (Session s : sev_data.users) {
+						s.getRemote().sendString("FIN " + token[1] + " " + token[2]);
+						// remove user from room
+						removeFromRoom(s);
+					}
+	    		} else {
+		    		// inform other players the next player, and the confirmed move
+					for (Session s : sev_data.users) {
+						s.getRemote().sendString("CON " + token[1] + " " + token[2] + " " + id_next);
+					}
+	    		}
 
 	    		break;
 	    	}
@@ -151,27 +172,27 @@ public class SocketHandler {
 	    
 	    public void removeFromRoom(Session user) throws IOException {
 	    	// do nothing if player is not in the server or game
-    		if (ServerMain.players.get(user) == null || 
-    				ServerMain.players.get(user).curr_game == null) {
+    		if (Main.players.get(user) == null || 
+    				Main.players.get(user).curr_game == null) {
     			return;
     		}
 	    	
-    		GameRoom room = ServerMain.players.get(user).curr_game;
+    		GameRoom room = Main.players.get(user).curr_game;
     		
     		// remove leaving player
-    		ServerMain.rooms.get(room).users.remove(user);
-    		ServerMain.players.get(user).curr_game = null;
+    		Main.rooms.get(room).users.remove(user);
+    		Main.players.get(user).curr_game = null;
     		
     		// inform other players the player left
-			for (Session s : ServerMain.rooms.get(room).users) {
-				PlayerData p_data = ServerMain.players.get(s);
+			for (Session s : Main.rooms.get(room).users) {
+				PlayerData p_data = Main.players.get(s);
 				
 				s.getRemote().sendString("QUE 1 " + p_data.id);
 			}
 			
 			// if room has no more players left
-			if (ServerMain.rooms.get(room).users.size() == 0) {
-				ServerMain.rooms.remove(room);
+			if (Main.rooms.get(room).users.size() == 0) {
+				Main.rooms.remove(room);
 				System.out.println("Room has been removed");
 			}
 	    }

@@ -16,12 +16,12 @@ public class PacketHandler implements MessageHandler {
 	public static int USER_ID = -1;
 	
 	public void handleMessage(String message) {
-		String[] tokens = message.split(" ");
+		System.out.println("Packet received.");
 		
+		String[] tokens = message.split(" ");
 		System.out.println(message);
 		
 		ClientPacket packet = ClientPacket.fromString(tokens[0]);
-		assert(packet != null);
 		
 		switch (packet) {
 		case CONNECTING:
@@ -93,7 +93,7 @@ public class PacketHandler implements MessageHandler {
 				break;
 			}
 			
-			((FrameBoard)CURR_WINDOW).nextTurn(Integer.valueOf(tokens[1]));
+			((FrameBoard)CURR_WINDOW).startGame(Integer.valueOf(tokens[1]));
 			break;
 		
 		// confirmed move packet
@@ -101,11 +101,19 @@ public class PacketHandler implements MessageHandler {
 			if (!(CURR_WINDOW instanceof FrameBoard)) {
 				break;
 			}
-			
+
 			((FrameBoard)CURR_WINDOW).confirmMove(Integer.valueOf(tokens[1]), Integer.valueOf(tokens[2]), Integer.valueOf(tokens[3]));
 			break;
+			
+		// last move, so game ends
+		case GAME_FINISHED:
+			if (!(CURR_WINDOW instanceof FrameBoard)) {
+				break;
+			}
+			
+			((FrameBoard)CURR_WINDOW).confirmMove(Integer.valueOf(tokens[1]), Integer.valueOf(tokens[2]), -1);
+			break;
 		}
-		
 		
 	}
 

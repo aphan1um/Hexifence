@@ -7,15 +7,12 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import java.util.zip.GZIPInputStream;
 
@@ -25,7 +22,7 @@ import javax.swing.border.EmptyBorder;
 import hexifence.gui.core.GameRoom;
 
 public class MainMenu extends JFrame {
-	private JList list_rooms;
+	private JList<GameRoom> list_rooms;
 	private DefaultListModel<GameRoom> listModel = new DefaultListModel<GameRoom>();
 	
 	public JTextField txt_name;
@@ -77,7 +74,8 @@ public class MainMenu extends JFrame {
 			
 			listModel.clear();
 			for (GameRoom r : rooms) {
-				listModel.addElement(r);
+				if (!r.started)
+					listModel.addElement(r);
 			}
 			
 			list_rooms.setEnabled(true);
@@ -117,6 +115,8 @@ public class MainMenu extends JFrame {
 		// TODO: Find a better name generator!
 		txt_name.setText(UUID.randomUUID().toString());
 		txt_name.setPreferredSize(new Dimension(200, 25));
+		// TODO: make the name changeable
+		txt_name.setEnabled(false);
 		name_panel.add(txt_name);
 		
 		// room section

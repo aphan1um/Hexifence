@@ -80,9 +80,12 @@ class GUIBoard extends Board<GUIEdge> {
 
     			Point edge_coord = new Point (cell_coord.x + Cell.ADJ_EDGES[i - 1][0], cell_coord.y + Cell.ADJ_EDGES[i - 1][1]);
 
-
+    			
+    			// store edge, and make sure to add cell to edge
     			if (getEdges()[edge_coord.x][edge_coord.y] == null)
     				getEdges()[edge_coord.x][edge_coord.y] = new GUIEdge(init_p, curr_p, edge_coord.x, edge_coord.y);
+    			
+    			getEdges()[edge_coord.x][edge_coord.y].addCell(c);
     		}
     	}
 
@@ -146,9 +149,10 @@ class GUIBoard extends Board<GUIEdge> {
     	    	@Override
     	    	public void mouseClicked(MouseEvent evt) {
     	    		if (board.sel_edge != null) {
+    	    			board.sel_edge.setColour(Color.BLACK);
     	    			Driver.sendMove(board.sel_edge.getLocation().x, board.sel_edge.getLocation().y);
     	    			board.sel_edge = null;
-    	    			FrameBoard.my_turn = false;
+    	    			FrameBoard.IS_LOCKED = true;
     	    		}
     			}
     	    }
@@ -156,7 +160,7 @@ class GUIBoard extends Board<GUIEdge> {
     	    private class MouseMotionHandler extends MouseMotionAdapter {
     	        @Override
     	        public void mouseMoved(MouseEvent e){
-    	        	if (!FrameBoard.my_turn) {
+    	        	if (!FrameBoard.isMyTurn() || FrameBoard.IS_LOCKED) {
     	        		return;
     	        	}
     	        	

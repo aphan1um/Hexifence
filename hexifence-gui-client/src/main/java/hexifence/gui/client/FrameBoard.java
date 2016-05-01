@@ -1,41 +1,33 @@
 package hexifence.gui.client;
 
-import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Point;
-import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseMotionAdapter;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.geom.Point2D;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map.Entry;
 
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.text.DefaultCaret;
 
 import hexifence.gui.client.net.PacketHandler;
-import hexifence.gui.core.Board;
 
 public class FrameBoard extends JFrame {
+	private static final Color[] USER_COLOURS = new Color[] { Color.RED, Color.CYAN, Color.ORANGE };
+	
 	/** Area of text, to show information about the game/server */
-	private JTextArea txt_info = new JTextArea();
+	private JTextArea txt_info = new JTextArea(10, 40);
 	/** Players in the game, mapping from player ID from server to player name */
 	private HashMap<Integer, String> players = new HashMap<Integer, String>();
 	/** Button to start game */
@@ -43,14 +35,17 @@ public class FrameBoard extends JFrame {
 	/** Contains the panel to displaying the game */
 	private GUIBoard board;
 	
-	/** If it is the player's turn to make a move */
-	public static boolean my_turn = false;
-
+	private HashMap<Integer, Color> players_c;
+	
+	public static int CURR_ID_TURN = -1;
+	public static boolean IS_LOCKED = false;
 	
 	public FrameBoard(int r, int offset, int dim, String roomName) {
 		// get centre location of this board, which is to be drawn on the frame
 		double x_cen = r * (2*dim - 1) * Math.cos(Math.PI/6) + offset;
 		double y_cen = r * Math.sin(Math.PI/6) * Math.floor((2*dim -1)/2)  + r*Math.ceil((2*dim - 1)/2.0) + offset;
+		
+		IS_LOCKED = false;
 		
 		setTitle("Hexifence - " + roomName);
 		
@@ -75,12 +70,18 @@ public class FrameBoard extends JFrame {
 		bottom_panel.setLayout(new BoxLayout(bottom_panel, BoxLayout.Y_AXIS));
 		
 		txt_info.setBorder(BorderFactory.createEtchedBorder());
-		txt_info.setPreferredSize(new Dimension((int)x_cen * 2, 100));
+		// txt_info.setPreferredSize(new Dimension((int)x_cen * 2, 200));
 		txt_info.setEditable(false);
 		txt_info.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-		bottom_panel.add(txt_info);
+		// bottom_panel.add(txt_info);
 		
-		txt_info.append("Welcome to Hexifence (waiting for players)!");
+		// scroll pane for textbox
+		JScrollPane scroll = new JScrollPane (txt_info);
+		scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+
+		bottom_panel.add(scroll);
+		
+		txt_info.append("Welcome to Hexifence!");
 		
 		// when the board is closed, indicate player left
 		this.addWindowListener(new WindowAdapter() {
@@ -104,7 +105,6 @@ public class FrameBoard extends JFrame {
 	}
 	
 	public void addPlayer(String name, int player_id) {
-		System.out.println("HIHIHI");
 		players.put(player_id, name);
 		txt_info.append("\n" + name + " has entered the room.");
 	}
@@ -114,20 +114,46 @@ public class FrameBoard extends JFrame {
 		players.remove(player_id);
 	}
 	
+	public void startGame(int player_id) {
+		btn_start.setVisible(false);
+		btn_start.getParent().remove(btn_start);
+		txt_info.append("\nGame has started!");
+		players_c = new HashMap<Integer, Color>();
+		
+		nextTurn(player_id);
+	}
+	
 	/** Give the next player a turn to select an open edge to occupy.
 	 * @param player_id Player ID to go next, given by the server.
 	 */
 	public void nextTurn(int player_id) {
-		if (player_id == PacketHandler.USER_ID) {
-			my_turn = true;
+		CURR_ID_TURN = player_id;
+		
+		if (isMyTurn()) {
 			txt_info.append("\n" + "It is your turn.");
+			IS_LOCKED = false;
 		}
 	}
 
+	public static boolean isMyTurn() {
+		return CURR_ID_TURN == PacketHandler.USER_ID;
+	}
+
 	public void confirmMove(int x, int y, int next_id) {
+		// if current player has not been given a colour
+		if (CURR_ID_TURN >= 0 && players_c.get(CURR_ID_TURN) == null) {
+			players_c.put(CURR_ID_TURN, USER_COLOURS[players_c.size()]);
+		}
+		
+		// game has ended
+		if (next_id == -1) {
+			txt_info.append("\n" + "Game has ended.");
+		}
+		
+		System.out.println("GOOGO " + CURR_ID_TURN + " " + next_id);
 		// 'use' the cell (ie. make it unselectable, and tell cells with
 		// this edge that edge is no longer open
-		board.getEdges()[x][y].useCell(Color.ORANGE);
+		board.getEdges()[x][y].useCell(players_c.get(CURR_ID_TURN));
 		nextTurn(next_id);
 	}
 }

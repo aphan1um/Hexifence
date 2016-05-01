@@ -1,1 +1,1 @@
-web:    java -cp target\classes;target\dependency\*;core.jar ServerMain
+web:    java -cp target\classes;target\dependency\*;core.jar Main

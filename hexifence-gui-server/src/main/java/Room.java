@@ -1,13 +1,9 @@
-
 import org.eclipse.jetty.websocket.api.*;
 
-import hexifence.gui.core.GameRoom;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-public class ServerRoomData {
+public class Room {
 	private static final int START_ID = 0;
 	private static int next_id = START_ID;
 
@@ -15,9 +11,13 @@ public class ServerRoomData {
 	public int id;
 	public int curr_index_player = 0;
 	
-	public ServerRoomData(Session player) {
+	public ServerBoard sev_board;
+	
+	public Room(Session player, int dim) {
 		this.id = next_id++;
 		users.add(player);
+		
+		sev_board = new ServerBoard(dim);
 	}
 	
 	public Session getHost() {

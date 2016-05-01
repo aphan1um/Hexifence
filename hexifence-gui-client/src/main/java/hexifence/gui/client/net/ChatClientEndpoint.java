@@ -76,8 +76,6 @@ public class ChatClientEndpoint {
     public void onMessage(String message) {
         if (this.messageHandler != null)
             this.messageHandler.handleMessage(message);
-        
-        System.out.println(message);
     }
  
     /**
