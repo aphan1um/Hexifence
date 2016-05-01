@@ -6,6 +6,7 @@ import org.eclipse.jetty.websocket.api.*;
 import org.eclipse.jetty.websocket.api.annotations.*;
 
 import hexifence.gui.core.GameRoom;
+import hexifence.gui.core.ServerPacket;
 
 
 @WebSocket
@@ -23,9 +24,10 @@ public class SocketHandler {
 	    public void onClose(Session user, int statusCode, String reason) {
 	    	// remove from the room and from player list
 	    	try {
-	    		if (ServerMain.players.remove(user) != null) {
-	    			removeFromRoom(user);
-	    		}
+	    		// remove the player from room (if any) before
+	    		// removing from serverlist
+	    		removeFromRoom(user);
+	    		ServerMain.players.remove(user);
 				
 				System.out.println("A player has left the websocket.");
 			} catch (IOException e) {
@@ -40,15 +42,18 @@ public class SocketHandler {
 	    	GameRoom game_room;
 	    	ServerRoomData sev_data;
 
-	    	switch (token[0]) {
-	    	case "NEW":
+	    	ServerPacket packet = ServerPacket.fromString(token[0]);
+	    	
+	    	switch (packet) {
+	    	case SERVER_ADDED_USER:
 	    		ServerMain.createPlayer(user, token[1]);
 	    		System.out.println("Request for player's name successful.");
-	    		// TODO: indicate success of storing name
+
+	    		// indicate success of adding user to server
 	    		user.getRemote().sendString("RDY " + ServerMain.players.get(user).id);
 	    		break;
 	    	
-	    	case "CRT":
+	    	case CREATE_ROOM:
 	    		boolean fail = false;
 	    		
 	    		for (GameRoom r : ServerMain.rooms.keySet()) {
@@ -65,11 +70,12 @@ public class SocketHandler {
 	    			ServerMain.players.get(user).curr_game = new_room;
 	    			
 	    			user.getRemote().sendString("ACT " + new_room.id + " " + new_room.dim + " " + new_room.room_name);
+	    			System.out.println("A room has been created.");
 	    		}
 	    		
 	    		break;
 	    		
-	    	case "JON":
+	    	case USER_JOINED_ROOM:
 	    		// find the room with matching id
 	    		for (GameRoom r : ServerMain.rooms.keySet()) {
 	    			// ensure game is still open (not started)
@@ -101,11 +107,11 @@ public class SocketHandler {
 	    		break;
 	    		
 	    	
-	    	case "LEV":
+	    	case USER_LEFT_ROOM:
 	    		removeFromRoom(user);
 	    		break;
 	    		
-	    	case "BGN":
+	    	case GAME_BEGIN:
 	    		// indicate the game room has begun
 	    		game_room = ServerMain.players.get(user).curr_game;
 	    		sev_data = ServerMain.rooms.get(game_room);
@@ -123,7 +129,7 @@ public class SocketHandler {
 	    		
 	    		break;
 	    		
-	    	case "MVE":
+	    	case GAME_NEXT_MOVE:
 	    		game_room = ServerMain.players.get(user).curr_game;
 	    		sev_data = ServerMain.rooms.get(game_room);
 	    		
@@ -144,8 +150,9 @@ public class SocketHandler {
 	    }
 	    
 	    public void removeFromRoom(Session user) throws IOException {
-	    	// do nothing if player is not in the server
-    		if (ServerMain.players.get(user) == null) {
+	    	// do nothing if player is not in the server or game
+    		if (ServerMain.players.get(user) == null || 
+    				ServerMain.players.get(user).curr_game == null) {
     			return;
     		}
 	    	

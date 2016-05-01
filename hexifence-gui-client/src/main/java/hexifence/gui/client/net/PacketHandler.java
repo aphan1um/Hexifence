@@ -7,6 +7,7 @@ import javax.swing.JOptionPane;
 import hexifence.gui.client.FrameBoard;
 import hexifence.gui.client.Driver;
 import hexifence.gui.client.MainMenu;
+import hexifence.gui.core.ClientPacket;
 
 public class PacketHandler implements MessageHandler {
 	public static Window CURR_WINDOW = null;
@@ -19,8 +20,11 @@ public class PacketHandler implements MessageHandler {
 		
 		System.out.println(message);
 		
-		switch (tokens[0]) {
-		case "RED":
+		ClientPacket packet = ClientPacket.fromString(tokens[0]);
+		assert(packet != null);
+		
+		switch (packet) {
+		case CONNECTING:
 			// TODO: Add wait...
 			while (MENU_WINDOW == null) {
 				try {
@@ -33,12 +37,12 @@ public class PacketHandler implements MessageHandler {
 			Driver.createPlayer(MENU_WINDOW.txt_name.getText());
 			break;
 		
-		case "RDY":
+		case READY:
 			USER_ID = Integer.valueOf(tokens[1]);
 			MENU_WINDOW.enableWindow();
 			break;
 			
-		case "REJ":
+		case ROOM_NAME_REJECTED:
 			JOptionPane.showMessageDialog(null,
 				    "The room name you have chosen to create has been taken.",
 				    "Room name occupied",
@@ -49,7 +53,7 @@ public class PacketHandler implements MessageHandler {
 			CURR_WINDOW.toFront();
 			
 			break;
-		case "ACT":
+		case ROOM_ACCEPTED:
 			if (CURR_WINDOW != null) {
 				CURR_WINDOW.dispose();
 				CURR_WINDOW = null;
@@ -61,13 +65,13 @@ public class PacketHandler implements MessageHandler {
 
 			break;
 			
-		case "FAL":
+		case ROOM_NOT_FOUND:
 			JOptionPane.showMessageDialog(null,
 				    "The room you have specified could not be found\nIt might have been closed before you entered.",
 				    "Room not found",
 				    JOptionPane.ERROR_MESSAGE);
 			
-		case "QUE":
+		case ROOM_STATUS_NEW:
 			if (!(CURR_WINDOW instanceof FrameBoard)) {
 				break;
 			}
@@ -84,7 +88,7 @@ public class PacketHandler implements MessageHandler {
 			break;
 		
 		// start game packet
-		case "SRT":
+		case ROOM_START:
 			if (!(CURR_WINDOW instanceof FrameBoard)) {
 				break;
 			}
@@ -93,7 +97,7 @@ public class PacketHandler implements MessageHandler {
 			break;
 		
 		// confirmed move packet
-		case "CON":
+		case MOVE_CONFIRMED:
 			if (!(CURR_WINDOW instanceof FrameBoard)) {
 				break;
 			}

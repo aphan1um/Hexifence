@@ -6,7 +6,9 @@ import java.net.URISyntaxException;
 import hexifence.gui.client.net.ChatClientEndpoint;
 import hexifence.gui.client.net.PacketHandler;
 import hexifence.gui.core.GameRoom;
+import hexifence.gui.core.ServerPacket;
 
+import javax.json.Json;
 
 public class Driver {
 	/** Web address which hosts the server application */
@@ -39,27 +41,27 @@ public class Driver {
 
 	
 	public static void createRoom(String name, int dim) {
-		client.sendMessage("CRT " + name + " " + dim);
+		client.sendMessage(ServerPacket.CREATE_ROOM.toString() + " " + name + " " + dim);
 	}
 
 	public static void joinRoom(GameRoom room) {
-		client.sendMessage("JON " + room.id);
+		client.sendMessage(ServerPacket.USER_JOINED_ROOM.toString() + " " + room.id);
 	}
 	
 	public static void beginGame() {
-		client.sendMessage("BGN");
+		client.sendMessage(ServerPacket.GAME_BEGIN.toString());
 	}
 	
 	public static void sendMove(int x, int y) {
-		client.sendMessage("MVE " + x + " " + y);
+		client.sendMessage(ServerPacket.GAME_NEXT_MOVE.toString() + " "  + x + " " + y);
 	}
 	
 	public static void createPlayer(String name) {
-		client.sendMessage("NEW " + name);
+		client.sendMessage(ServerPacket.SERVER_ADDED_USER.toString() + " "  + name);
 	}
 	
 	public static void leaveRoom() {
-		client.sendMessage("LEV");
+		client.sendMessage(ServerPacket.USER_LEFT_ROOM.toString());
 		
 		PacketHandler.MENU_WINDOW.setVisible(true);
 	}
