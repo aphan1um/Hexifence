@@ -119,8 +119,8 @@ public class PacketHandler implements MessageHandler {
 
 	
 	private void initBoard(int dim, String boardName) {
-		int r = 40;
-		int offset = 20;
+		int r = 50;
+		int offset = 30;
 
 		CURR_WINDOW = new FrameBoard(r, offset, dim, boardName);
 		CURR_WINDOW.toFront();

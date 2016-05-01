@@ -12,6 +12,7 @@ public class Cell {
 	private int num_open = 6;
 	/** Centre point of a cell. */
 	private Point centre;
+	private int id_occupied;
 	
 	/** Create a new instance of a cell, with 'centre' being the
 	 * centre of the cell.
@@ -23,6 +24,14 @@ public class Cell {
 	/** Get the number of open edges around this cell. */
 	public int getNumOpen() {
 		return num_open;
+	}
+	
+	public int getIDOccupied() {
+		return id_occupied;
+	}
+	
+	void setIDCapturer(int capture_id) {
+		this.id_occupied = capture_id;
 	}
 	
 	/** Get the centre location of this cell. */

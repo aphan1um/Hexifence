@@ -2,6 +2,7 @@ package hexifence.gui.client;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
@@ -10,6 +11,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 import java.awt.geom.Point2D;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.swing.JPanel;
 
@@ -21,13 +24,16 @@ class GUIBoard extends Board<GUIEdge> {
     	private double radius;
     	GUIEdge sel_edge = null;
     	private GUIBoardPanel board_panel;
+    	private FrameBoard frame;
+    	
+    	HashMap<Cell, Point2D> cell_cen = new HashMap<Cell, Point2D>();
 
     	/** Initialise an instance of a game board.
     	 * @param dim Dimension of game board.
     	 * @param draw_centre Centre of game board, to be drawn on window.
     	 * @param radius Size of a cell in the game board.
     	 */
-    	public GUIBoard(int dim, Point2D draw_centre, double radius) {
+    	public GUIBoard(int dim, Point2D draw_centre, double radius, FrameBoard board) {
     		super(GUIEdge.class, dim);
     		
     		this.draw_centre = draw_centre;
@@ -36,7 +42,19 @@ class GUIBoard extends Board<GUIEdge> {
     		// initalise the panel object for the board
     		board_panel = new GUIBoardPanel(this);
     		
+    		this.frame = board;
+    		
     		prepare();
+    	}
+    	
+    	public void paint(Graphics g) {
+    		for (Map.Entry<Cell, Point2D> kv : cell_cen.entrySet()) {
+    			if (kv.getKey().getNumOpen() == 0) {
+    				g.setFont(new Font("Segoe UI", Font.BOLD, 20));
+    				g.setColor(FrameBoard.USER_COLOURS[frame.players_c.get(kv.getKey().getIDOccupied())]);
+    				g.drawString(FrameBoard.USER_COLOURS_STR[frame.players_c.get(kv.getKey().getIDOccupied())], (int)kv.getValue().getX(), (int)kv.getValue().getY());
+    			}
+    		}
     	}
 
     	@Override
@@ -62,8 +80,8 @@ class GUIBoard extends Board<GUIEdge> {
     				init_p = curr_p;
     			}
 
-    			double new_x = getDrawCentre().getX() + getRadius() * Math.cos((i-0.5)*Math.PI*2/6);
-    			double new_y = getDrawCentre().getY() + getRadius() * Math.sin((i-0.5)*Math.PI*2/6);
+    			double new_x = getDrawCentre().getX();
+    			double new_y = getDrawCentre().getY() + getRadius();
     			
     			// adjust point based on p_diff (see above)
     			new_x += 2 * Math.cos(Math.PI/6) * getRadius() * p_diff.y;
@@ -71,7 +89,11 @@ class GUIBoard extends Board<GUIEdge> {
 
     			new_y += Math.cos(Math.PI/6) * 1/Math.tan(Math.PI/6) * getRadius() * p_diff.x;
     			
+    			cell_cen.put(c, new Point2D.Double(new_x, new_y));
 
+    			new_x += getRadius() * Math.cos((i-0.5)*Math.PI*2/6);
+    			new_y += getRadius() * Math.sin((i-0.5)*Math.PI*2/6);
+    			
     			curr_p = new Point2D.Double(new_x, new_y);
     			
     			if (init_p == null) {
@@ -122,7 +144,7 @@ class GUIBoard extends Board<GUIEdge> {
     	    	super.paintComponent(g);
     	    	
     	    	// set thickness of line, and enable antialiasing (for smooth lines)
-    	    	g2d.setStroke(new BasicStroke(6f));
+    	    	g2d.setStroke(new BasicStroke(6.5f));
     	    	g2d.setRenderingHints(new RenderingHints(RenderingHints.KEY_ANTIALIASING,
     	    			RenderingHints.VALUE_ANTIALIAS_ON));
 
@@ -141,6 +163,8 @@ class GUIBoard extends Board<GUIEdge> {
     	    	if (board.sel_edge != null) {
     	    		board.sel_edge.paint(g);
     	    	}
+    	    	
+    	    	board.paint(g);
 
     	    	g.dispose();
     	    }

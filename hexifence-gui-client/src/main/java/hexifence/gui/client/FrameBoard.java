@@ -24,7 +24,9 @@ import javax.swing.text.DefaultCaret;
 import hexifence.gui.client.net.PacketHandler;
 
 public class FrameBoard extends JFrame {
-	private static final Color[] USER_COLOURS = new Color[] { Color.RED, Color.CYAN, Color.ORANGE };
+	public static final Color[] USER_COLOURS = new Color[] { Color.RED, Color.CYAN, Color.ORANGE };
+	public static final String[] USER_COLOURS_STR = new String[] { "R", "C", "O" };
+	int user_colours_count = 0;
 	
 	/** Area of text, to show information about the game/server */
 	private JTextArea txt_info = new JTextArea(10, 40);
@@ -35,7 +37,7 @@ public class FrameBoard extends JFrame {
 	/** Contains the panel to displaying the game */
 	private GUIBoard board;
 	
-	private HashMap<Integer, Color> players_c;
+	public HashMap<Integer, Integer> players_c;
 	
 	public static int CURR_ID_TURN = -1;
 	public static boolean IS_LOCKED = false;
@@ -57,7 +59,7 @@ public class FrameBoard extends JFrame {
 
 	private void initUI(double x_cen, double y_cen, int offset, int dim, int r) {
 		// add the game board onto window
-		board = new GUIBoard(dim, new Point2D.Double(x_cen, y_cen), r);
+		board = new GUIBoard(dim, new Point2D.Double(x_cen, y_cen), r, this);
 		board.getBoardPanel().setPreferredSize(new Dimension((int)x_cen * 2, (int)y_cen * 2 + offset));
 		add(board.getBoardPanel());
 		
@@ -118,7 +120,7 @@ public class FrameBoard extends JFrame {
 		btn_start.setVisible(false);
 		btn_start.getParent().remove(btn_start);
 		txt_info.append("\nGame has started!");
-		players_c = new HashMap<Integer, Color>();
+		players_c = new HashMap<Integer, Integer>();
 		
 		nextTurn(player_id);
 	}
@@ -142,7 +144,7 @@ public class FrameBoard extends JFrame {
 	public void confirmMove(int x, int y, int next_id) {
 		// if current player has not been given a colour
 		if (CURR_ID_TURN >= 0 && players_c.get(CURR_ID_TURN) == null) {
-			players_c.put(CURR_ID_TURN, USER_COLOURS[players_c.size()]);
+			players_c.put(CURR_ID_TURN, user_colours_count++);
 		}
 		
 		// game has ended
@@ -153,7 +155,7 @@ public class FrameBoard extends JFrame {
 		System.out.println("GOOGO " + CURR_ID_TURN + " " + next_id);
 		// 'use' the cell (ie. make it unselectable, and tell cells with
 		// this edge that edge is no longer open
-		board.getEdges()[x][y].useCell(players_c.get(CURR_ID_TURN));
+		board.getEdges()[x][y].useCell(USER_COLOURS[players_c.get(CURR_ID_TURN)], CURR_ID_TURN);
 		nextTurn(next_id);
 	}
 }

@@ -38,8 +38,8 @@ class GUIEdge extends Edge {
 		g2d.draw(sh);
 	}
 	
-	public void useCell(Color colour) {
-		super.useCell();
+	public void useCell(Color colour, int id_capture) {
+		super.useCell(id_capture);
 		
 		selectable = false;
 		this.colour = colour;

@@ -134,9 +134,9 @@ public class SocketHandler {
 	    		game_room = Main.players.get(user).curr_game;
 	    		sev_data = Main.rooms.get(game_room);
 	    		
-	    		int id_next = sev_data.curr_index_player;
+	    		int id_next = Main.players.get(sev_data.users.get(sev_data.curr_index_player)).id;
 	    		
-	    		int cells_captured = sev_data.sev_board.getEdges()[Integer.valueOf(token[1])][Integer.valueOf(token[2])].useCell();
+	    		int cells_captured = sev_data.sev_board.getEdges()[Integer.valueOf(token[1])][Integer.valueOf(token[2])].useCell(id_next);
 	    		
 	    		// if cell has been captured, the current player will keep his/her turn;
 	    		// otherwise the next player goes

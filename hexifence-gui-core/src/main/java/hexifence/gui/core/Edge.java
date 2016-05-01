@@ -48,7 +48,7 @@ public class Edge {
 	 * @return Returns the number of cells captured by player
 	 * (0 if none).
 	 */
-	public int useCell() {
+	public int useCell(int id_capture) {
 		int cells_captured = 0;
 		
 		for (Cell c : adj_cells) {
@@ -56,6 +56,8 @@ public class Edge {
 			
 			if (c.getNumOpen() == 0) {
 				cells_captured++;
+				
+				c.setIDCapturer(id_capture);
 			}
 		}
 		
