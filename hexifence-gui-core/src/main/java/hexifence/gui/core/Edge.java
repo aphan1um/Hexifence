@@ -53,7 +53,7 @@ public class Edge {
 		
 		for (Cell c : adj_cells) {
 			c.decrementNumOpen();
-			
+			System.out.println(c.getCentre().toString() + ": " + c.getNumOpen() + " " + this.location);
 			if (c.getNumOpen() == 0) {
 				cells_captured++;
 				

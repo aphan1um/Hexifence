@@ -3,6 +3,7 @@ package hexifence.gui.client;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
@@ -23,6 +24,7 @@ class GUIBoard extends Board<GUIEdge> {
     	private Point2D draw_centre;
     	private double radius;
     	GUIEdge sel_edge = null;
+
     	private GUIBoardPanel board_panel;
     	private FrameBoard frame;
     	
@@ -48,11 +50,20 @@ class GUIBoard extends Board<GUIEdge> {
     	}
     	
     	public void paint(Graphics g) {
+    		Font f = new Font("Segoe UI", Font.BOLD, 20);
+    		g.setFont(f);
+    		FontMetrics fm = g.getFontMetrics(f);
+    		
     		for (Map.Entry<Cell, Point2D> kv : cell_cen.entrySet()) {
     			if (kv.getKey().getNumOpen() == 0) {
-    				g.setFont(new Font("Segoe UI", Font.BOLD, 20));
+    				g.setFont(f);
     				g.setColor(FrameBoard.USER_COLOURS[frame.players_c.get(kv.getKey().getIDOccupied())]);
-    				g.drawString(FrameBoard.USER_COLOURS_STR[frame.players_c.get(kv.getKey().getIDOccupied())], (int)kv.getValue().getX(), (int)kv.getValue().getY());
+    				
+    				String text_render = FrameBoard.USER_COLOURS_STR[frame.players_c.get(kv.getKey().getIDOccupied())];
+    				int x_draw = (int)(kv.getValue().getX() - fm.stringWidth(text_render)/2.0);
+    				int y_draw = (int)(kv.getValue().getY() - fm.getHeight()/2.0) + fm.getAscent();
+    				
+    				g.drawString(text_render, x_draw, y_draw);
     			}
     		}
     	}
@@ -71,7 +82,7 @@ class GUIBoard extends Board<GUIEdge> {
     		int column_start = Math.max(0, p_diff.x);
     		
     		// calculate the centre of cell (in edge coordinates)
-    		Point cell_coord = new Point(2*c.getCentre().x + 1, 2*c.getCentre().y - column_start + 1);
+    		Point cell_coord = new Point(2*c.getCentre().x + 1, 2*c.getCentre().y + 1);
 
     		// create edges around cell
     		for (int i = 0; i <= 6; i++) {
@@ -108,6 +119,8 @@ class GUIBoard extends Board<GUIEdge> {
     				getEdges()[edge_coord.x][edge_coord.y] = new GUIEdge(init_p, curr_p, edge_coord.x, edge_coord.y);
     			
     			getEdges()[edge_coord.x][edge_coord.y].addCell(c);
+    			
+    			System.out.println(c.getCentre() + " ---> " + cell_coord + " : " + edge_coord + "    p_diff=" + p_diff);
     		}
     	}
 
@@ -144,7 +157,7 @@ class GUIBoard extends Board<GUIEdge> {
     	    	super.paintComponent(g);
     	    	
     	    	// set thickness of line, and enable antialiasing (for smooth lines)
-    	    	g2d.setStroke(new BasicStroke(6.5f));
+    	    	g2d.setStroke(new BasicStroke(9f));
     	    	g2d.setRenderingHints(new RenderingHints(RenderingHints.KEY_ANTIALIASING,
     	    			RenderingHints.VALUE_ANTIALIAS_ON));
 
@@ -188,7 +201,7 @@ class GUIBoard extends Board<GUIEdge> {
     	        		return;
     	        	}
     	        	
-    				int HIT_BOX_SIZE = 4;
+    				int HIT_BOX_SIZE = 6;
     				int boxX = e.getX() - HIT_BOX_SIZE / 2;
     				int boxY = e.getY() - HIT_BOX_SIZE / 2;
 

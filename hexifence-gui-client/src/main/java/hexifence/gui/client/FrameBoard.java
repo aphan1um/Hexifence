@@ -29,7 +29,7 @@ public class FrameBoard extends JFrame {
 	int user_colours_count = 0;
 	
 	/** Area of text, to show information about the game/server */
-	private JTextArea txt_info = new JTextArea(10, 40);
+	private JTextArea txt_info = new JTextArea(10, 30);
 	/** Players in the game, mapping from player ID from server to player name */
 	private HashMap<Integer, String> players = new HashMap<Integer, String>();
 	/** Button to start game */

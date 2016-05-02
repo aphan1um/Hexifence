@@ -22,7 +22,7 @@ public class ServerBoard extends Board<Edge> {
     		int column_start = Math.max(0, c.getCentre().x - (getDim() - 1));
 
 			// calculate the centre of cell (in edge coordinates)
-    		Point cell_coord = new Point(2*c.getCentre().x + 1, 2*c.getCentre().y - column_start + 1);
+    		Point cell_coord = new Point(2*c.getCentre().x + 1, 2*c.getCentre().y + 1);
 
     		Point edge_coord = new Point(cell_coord.x + adj[0], cell_coord.y + adj[1]);
 			
