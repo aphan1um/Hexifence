@@ -12,9 +12,9 @@ import javax.json.Json;
 
 public class Driver {
 	/** Web address which hosts the server application */
-	public static final String SERVER_ADDRESS = "http://localhost:5000";
+	public static final String SERVER_ADDRESS = "http://hexifence-gui-server.herokuapp.com";
 	/** Websocket address */
-	public static final String WEBSOCKET_ADDRESS = "ws://localhost:5000/players";
+	public static final String WEBSOCKET_ADDRESS = "ws://hexifence-gui-server.herokuapp.com/players";
 
 	/** Class which allows client to send messages to server */
 	private static ChatClientEndpoint client;

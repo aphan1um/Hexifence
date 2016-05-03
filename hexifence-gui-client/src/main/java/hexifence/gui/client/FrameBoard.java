@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
@@ -28,14 +29,16 @@ public class FrameBoard extends JFrame {
 	public static final String[] USER_COLOURS_STR = new String[] { "R", "C", "O" };
 	int user_colours_count = 0;
 	
+	int temp_lone_turn = 0;
+	
 	/** Area of text, to show information about the game/server */
-	private JTextArea txt_info = new JTextArea(10, 30);
+	public JTextArea txt_info = new JTextArea(5, 15);
 	/** Players in the game, mapping from player ID from server to player name */
 	private HashMap<Integer, String> players = new HashMap<Integer, String>();
 	/** Button to start game */
 	private JButton btn_start;
 	/** Contains the panel to displaying the game */
-	private GUIBoard board;
+	public GUIBoard board;
 	
 	public HashMap<Integer, Integer> players_c;
 	
@@ -43,24 +46,19 @@ public class FrameBoard extends JFrame {
 	public static boolean IS_LOCKED = false;
 	
 	public FrameBoard(int r, int offset, int dim, String roomName) {
-		// get centre location of this board, which is to be drawn on the frame
-		double x_cen = r * (2*dim - 1) * Math.cos(Math.PI/6) + offset;
-		double y_cen = r * Math.sin(Math.PI/6) * Math.floor((2*dim -1)/2)  + r*Math.ceil((2*dim - 1)/2.0) + offset;
-		
 		IS_LOCKED = false;
 		
 		setTitle("Hexifence - " + roomName);
 		
-		initUI(x_cen, y_cen, offset, dim, r);
+		initUI(offset, dim, r);
 		
 		pack();
 		setVisible(true);
 	}
 
-	private void initUI(double x_cen, double y_cen, int offset, int dim, int r) {
+	private void initUI(int offset, int dim, int r) {
 		// add the game board onto window
-		board = new GUIBoard(dim, new Point2D.Double(x_cen, y_cen), r, this);
-		board.getBoardPanel().setPreferredSize(new Dimension((int)x_cen * 2, (int)y_cen * 2 + offset));
+		board = new GUIBoard(dim, r, offset, this);
 		add(board.getBoardPanel());
 		
 		// add the main player into 'players' (no need supplied)
@@ -92,16 +90,34 @@ public class FrameBoard extends JFrame {
 			}
 		});
 		
+		// for the two buttons
+		JPanel panel_buttons = new JPanel();
+		panel_buttons.setLayout(new GridLayout(1, 2));
+		
 		// start button
 		btn_start = new JButton("Start Game");
-		btn_start.setSize(new Dimension((int)x_cen * 2, 20));
+		btn_start.setSize(new Dimension(20, 20));
 		btn_start.setAlignmentX(Component.CENTER_ALIGNMENT);
-		bottom_panel.add(btn_start);
+		panel_buttons.add(btn_start);
+		
+		// settings button
+		JButton btn_settings = new JButton("Settings");
+		btn_settings.setSize(new Dimension(20, 20));
+		btn_settings.setAlignmentX(Component.CENTER_ALIGNMENT);
+		panel_buttons.add(btn_settings);
+		
+		bottom_panel.add(panel_buttons);
 		
 		// button to start game event
 		btn_start.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				Driver.beginGame();
+			}
+		});
+		
+		btn_settings.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				new GameSettings(FrameBoard.this);
 			}
 		});
 	}
@@ -117,10 +133,14 @@ public class FrameBoard extends JFrame {
 	}
 	
 	public void startGame(int player_id) {
-		btn_start.setVisible(false);
-		btn_start.getParent().remove(btn_start);
+		btn_start.setEnabled(false);
 		txt_info.append("\nGame has started!");
+		
 		players_c = new HashMap<Integer, Integer>();
+		
+		if (players.size() == 1) {
+			txt_info.append("\nNote: You are the only player in this game; two colours will alternate.");
+		}
 		
 		nextTurn(player_id);
 	}
@@ -132,7 +152,10 @@ public class FrameBoard extends JFrame {
 		CURR_ID_TURN = player_id;
 		
 		if (isMyTurn()) {
-			txt_info.append("\n" + "It is your turn.");
+			if (players.size() > 1) {
+				txt_info.append("\n" + "It is your turn.");
+			}
+			
 			IS_LOCKED = false;
 		}
 	}
@@ -143,19 +166,28 @@ public class FrameBoard extends JFrame {
 
 	public void confirmMove(int x, int y, int next_id) {
 		// if current player has not been given a colour
-		if (CURR_ID_TURN >= 0 && players_c.get(CURR_ID_TURN) == null) {
+		if (players.size() > 1 && CURR_ID_TURN >= 0 && players_c.get(CURR_ID_TURN) == null) {
 			players_c.put(CURR_ID_TURN, user_colours_count++);
+		} else if (players_c.get(temp_lone_turn) == null) {
+			players_c.put(temp_lone_turn, user_colours_count++);
 		}
 		
 		// game has ended
 		if (next_id == -1) {
 			txt_info.append("\n" + "Game has ended.");
 		}
-		
-		System.out.println("GOOGO " + CURR_ID_TURN + " " + next_id);
+
 		// 'use' the cell (ie. make it unselectable, and tell cells with
 		// this edge that edge is no longer open
-		board.getEdges()[x][y].useCell(USER_COLOURS[players_c.get(CURR_ID_TURN)], CURR_ID_TURN);
+		if (players.size() == 1) {
+			if (board.getEdges()[x][y].useCell(USER_COLOURS[temp_lone_turn], temp_lone_turn) == 0) {
+				temp_lone_turn++;
+				temp_lone_turn %= 2;
+			}
+		} else {
+			board.getEdges()[x][y].useCell(USER_COLOURS[players_c.get(CURR_ID_TURN)], CURR_ID_TURN);
+		}
+		
 		nextTurn(next_id);
 	}
 }

@@ -24,7 +24,7 @@ class GUIEdge extends Edge {
 	 */
 	public GUIEdge(Point2D start, Point2D end, int x, int y) {
 		super(new Point(x, y));
-		sh = new Line2D.Double(start.getX(), start.getY(), end.getX(), end.getY());
+		setNewLine(start, end);
 		
 		// set default colour
 		this.colour = DEFAULT_COLOUR;
@@ -38,15 +38,21 @@ class GUIEdge extends Edge {
 		g2d.draw(sh);
 	}
 	
-	public void useCell(Color colour, int id_capture) {
-		super.useCell(id_capture);
+	public int useCell(Color colour, int id_capture) {
+		int ret = super.useCell(id_capture);
 		
 		selectable = false;
 		this.colour = colour;
+		
+		return ret;
 	}
 
 	public Line2D getShape() {
 		return (Line2D)sh;
+	}
+	
+	public void setNewLine(Point2D start, Point2D end) {
+		sh = new Line2D.Double(start.getX(), start.getY(), end.getX(), end.getY());
 	}
 
 	public boolean isSelectable() {

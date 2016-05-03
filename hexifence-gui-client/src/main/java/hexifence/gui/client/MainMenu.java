@@ -32,7 +32,7 @@ public class MainMenu extends JFrame {
 		this.setEnabled(false);
 		initUI();
 		
-		JOptionPane pane = new JOptionPane("Please wait while connecting to server...\nIf this takes too long, press X to exit.",
+		JOptionPane pane = new JOptionPane("Please wait while connecting to server...\nIf this takes too long, press X to exit, and restart it.\nMost of the time, this should let you in.",
 				JOptionPane.NO_OPTION, JOptionPane.DEFAULT_OPTION, null, new Object[]{}, null);
 		init_dialog = pane.createDialog(this, "Connecting");
 		init_dialog.setModalityType(ModalityType.MODELESS);

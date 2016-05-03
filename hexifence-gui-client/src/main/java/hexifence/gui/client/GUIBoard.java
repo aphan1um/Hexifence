@@ -2,6 +2,7 @@ package hexifence.gui.client;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -21,25 +22,35 @@ import hexifence.gui.core.Board;
 import hexifence.gui.core.Cell;
 
 class GUIBoard extends Board<GUIEdge> {
-    	private Point2D draw_centre;
-    	private double radius;
+    	public Point2D draw_centre;
+    	public double radius;
+    	
     	GUIEdge sel_edge = null;
 
     	private GUIBoardPanel board_panel;
     	private FrameBoard frame;
     	
     	HashMap<Cell, Point2D> cell_cen = new HashMap<Cell, Point2D>();
+    	
+    	private boolean init = false;
+    	public int offset;
+    	public int dim;
+    	
+    	public float line_thickness = 9f;
 
     	/** Initialise an instance of a game board.
     	 * @param dim Dimension of game board.
     	 * @param draw_centre Centre of game board, to be drawn on window.
     	 * @param radius Size of a cell in the game board.
     	 */
-    	public GUIBoard(int dim, Point2D draw_centre, double radius, FrameBoard board) {
+    	public GUIBoard(int dim, double r, int offset, FrameBoard board) {
     		super(GUIEdge.class, dim);
+
+    		this.radius = r;
+    		this.offset = offset;
+    		this.dim = dim;
     		
-    		this.draw_centre = draw_centre;
-    		this.radius = radius;
+    		adjustSize();
     		
     		// initalise the panel object for the board
     		board_panel = new GUIBoardPanel(this);
@@ -47,8 +58,21 @@ class GUIBoard extends Board<GUIEdge> {
     		this.frame = board;
     		
     		prepare();
+    		this.init = true;
     	}
     	
+    	public void adjustSize() {
+    		// get centre location of this board, which is to be drawn on the frame
+    		double x_cen = radius * (2*dim - 1) * Math.cos(Math.PI/6) + offset/2.0;
+    		double y_cen = radius * Math.sin(Math.PI/6) * Math.floor((2*dim - 1)/2.0)  + radius*Math.ceil((2*dim - 1)/2.0);
+    		
+    		this.draw_centre = new Point2D.Double(x_cen, y_cen);
+    		
+    		if (board_panel != null)
+    			board_panel.setPreferredSize(new Dimension((int)draw_centre.getX() * 2, (int)draw_centre.getY() * 2 + offset));
+    	}
+    	
+    	// paint cell string, indicating capturer
     	public void paint(Graphics g) {
     		Font f = new Font("Segoe UI", Font.BOLD, 20);
     		g.setFont(f);
@@ -115,12 +139,16 @@ class GUIBoard extends Board<GUIEdge> {
 
     			
     			// store edge, and make sure to add cell to edge
-    			if (getEdges()[edge_coord.x][edge_coord.y] == null)
-    				getEdges()[edge_coord.x][edge_coord.y] = new GUIEdge(init_p, curr_p, edge_coord.x, edge_coord.y);
+    			if (!init) {
+    				if (getEdges()[edge_coord.x][edge_coord.y] == null)
+        				getEdges()[edge_coord.x][edge_coord.y] = new GUIEdge(init_p, curr_p, edge_coord.x, edge_coord.y);
+        			
+        			getEdges()[edge_coord.x][edge_coord.y].addCell(c);
+    			} else {
+    				// if already initialized, but want to adjust radius
+    				getEdges()[edge_coord.x][edge_coord.y].setNewLine(init_p, curr_p);
+    			}
     			
-    			getEdges()[edge_coord.x][edge_coord.y].addCell(c);
-    			
-    			System.out.println(c.getCentre() + " ---> " + cell_coord + " : " + edge_coord + "    p_diff=" + p_diff);
     		}
     	}
 
@@ -148,6 +176,9 @@ class GUIBoard extends Board<GUIEdge> {
     			setBackground(Color.WHITE);
     			addMouseMotionListener(new MouseMotionHandler());
     			addMouseListener(new MouseHandler());
+    			
+    			// set size
+    			setPreferredSize(new Dimension((int)board.draw_centre.getX() * 2, (int)board.draw_centre.getY() * 2 + board.offset));
     		}
     		
     	    @Override
@@ -157,7 +188,7 @@ class GUIBoard extends Board<GUIEdge> {
     	    	super.paintComponent(g);
     	    	
     	    	// set thickness of line, and enable antialiasing (for smooth lines)
-    	    	g2d.setStroke(new BasicStroke(9f));
+    	    	g2d.setStroke(new BasicStroke(board.line_thickness));
     	    	g2d.setRenderingHints(new RenderingHints(RenderingHints.KEY_ANTIALIASING,
     	    			RenderingHints.VALUE_ANTIALIAS_ON));
 
@@ -190,6 +221,9 @@ class GUIBoard extends Board<GUIEdge> {
     	    			Driver.sendMove(board.sel_edge.getLocation().x, board.sel_edge.getLocation().y);
     	    			board.sel_edge = null;
     	    			FrameBoard.IS_LOCKED = true;
+    	    			
+    	    			// reflect this change on edge
+    	    			board.frame.repaint();
     	    		}
     			}
     	    }

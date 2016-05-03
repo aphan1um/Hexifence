@@ -43,7 +43,7 @@ public class SocketHandler {
 	    	Room sev_data;
 
 	    	ServerPacket packet = ServerPacket.fromString(token[0]);
-	    	System.out.println(message);
+	    	// System.out.println(message);
 	    	
 	    	switch (packet) {
 	    	case SERVER_ADDED_USER:

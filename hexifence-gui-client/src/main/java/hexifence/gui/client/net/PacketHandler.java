@@ -16,10 +16,10 @@ public class PacketHandler implements MessageHandler {
 	public static int USER_ID = -1;
 	
 	public void handleMessage(String message) {
-		System.out.println("Packet received.");
+		// System.out.println("Packet received.");
 		
 		String[] tokens = message.split(" ");
-		System.out.println(message);
+		// System.out.println(message);
 		
 		ClientPacket packet = ClientPacket.fromString(tokens[0]);
 		
@@ -58,8 +58,7 @@ public class PacketHandler implements MessageHandler {
 				CURR_WINDOW.dispose();
 				CURR_WINDOW = null;
 			}
-			
-			System.out.println("Got here");
+
 			// token[2] = dim
 			initBoard(Integer.valueOf(tokens[2]), tokens[3]);
 
@@ -113,14 +112,17 @@ public class PacketHandler implements MessageHandler {
 			
 			((FrameBoard)CURR_WINDOW).confirmMove(Integer.valueOf(tokens[1]), Integer.valueOf(tokens[2]), -1);
 			break;
+			
+		case PING_RECEIVED:
+			break;
 		}
 		
 	}
 
 	
 	private void initBoard(int dim, String boardName) {
-		int r = 65;
-		int offset = 50;
+		int r = 40;
+		int offset = 70;
 
 		CURR_WINDOW = new FrameBoard(r, offset, dim, boardName);
 		CURR_WINDOW.toFront();
