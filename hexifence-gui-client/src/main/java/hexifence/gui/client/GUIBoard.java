@@ -37,6 +37,8 @@ class GUIBoard extends Board<GUIEdge> {
     	public int dim;
     	
     	public float line_thickness = 9f;
+    	
+    	private static int num_edges = 0; 
 
     	/** Initialise an instance of a game board.
     	 * @param dim Dimension of game board.
@@ -45,6 +47,7 @@ class GUIBoard extends Board<GUIEdge> {
     	 */
     	public GUIBoard(int dim, double r, int offset, FrameBoard board) {
     		super(GUIEdge.class, dim);
+    		num_edges = 0;
 
     		this.radius = r;
     		this.offset = offset;
@@ -59,6 +62,7 @@ class GUIBoard extends Board<GUIEdge> {
     		
     		prepare();
     		this.init = true;
+    		System.out.println("number of edges : " + num_edges);
     	}
     	
     	public void adjustSize() {
@@ -140,8 +144,10 @@ class GUIBoard extends Board<GUIEdge> {
     			
     			// store edge, and make sure to add cell to edge
     			if (!init) {
-    				if (getEdges()[edge_coord.x][edge_coord.y] == null)
+    				if (getEdges()[edge_coord.x][edge_coord.y] == null) {
         				getEdges()[edge_coord.x][edge_coord.y] = new GUIEdge(init_p, curr_p, edge_coord.x, edge_coord.y);
+        				num_edges++;
+    				}
         			
         			getEdges()[edge_coord.x][edge_coord.y].addCell(c);
     			} else {
