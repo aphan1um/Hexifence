@@ -20,6 +20,8 @@ public class SearchTree {
         private List<Node> children;
         private boolean myTurn;
         
+        private int minimax;
+        
         public Node(Board board, Node parent, boolean isMyTurn) {
         	this.state = board;
         	this.parent = parent;
@@ -42,6 +44,10 @@ public class SearchTree {
         
         public boolean isMyTurn() {
         	return myTurn;
+        }
+        
+        public void setMiniMax(int value) {
+        	this.minimax = value;
         }
         
         public Node addChild(Board board) {

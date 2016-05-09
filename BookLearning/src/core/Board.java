@@ -12,9 +12,7 @@ public class Board {
 	
 	public Board(int dim) {
 		this.dim = dim;
-		
 		score = 0;
-		
 		edge_data = new BitSet();
 	}
 	
@@ -82,6 +80,7 @@ public class Board {
 		// now check if the cells with this edge have been filled
 		if (r % 2 == 0) { 	// r even => row does not contain cell centres
 			
+			// check if this edge is connected to cell below
 			if (r + 1 < 4*dim - 1) {
 				if (c % 2 == 0) {
 					checkCell(r + 1, c + 1, isSelf);
@@ -90,9 +89,10 @@ public class Board {
 				}
 			}
 			
-			if (r == 4*dim - 2 && (r - 1 >= 0 || (c != 0 && c != 2*dim + r - 1))) {
+			// now check above
+			if (r - 1 > 0) {
 				if (c % 2 == 0) {
-					checkCell(r - 1, c + 1, isSelf);
+					checkCell(r - 1, c - 1, isSelf);
 				} else {
 					checkCell(r - 1, c, isSelf);
 				}
