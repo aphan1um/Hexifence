@@ -20,7 +20,14 @@ public class Board {
 	
 	public Board(int dim, BitSet data) {
 		this(dim);
-		this.edge_data = data;
+		this.edge_data = (BitSet)data.clone();
+	}
+	
+	public Board deepCopy() {
+		Board clone = new Board(dim, this.edge_data);
+		clone.score = this.score;
+		
+		return clone;
 	}
 	
 	// Get the bit location 
@@ -49,6 +56,10 @@ public class Board {
 	}
 	
 	/** Make a move by placing a piece on a free edge on the board.
+	 * <p>
+	 * If this edge is invalid AND represents the centre of a cell,
+	 * then nothing is done, and <code>-1</code> is returned.
+	 * </p>
 	 * @param r Row number of edge.
 	 * @param c Column number of edge.
 	 * @param isSelf If you (the agent) is making this move.
@@ -58,6 +69,14 @@ public class Board {
 	 * @return
 	 */
 	public int occupyEdge(int r, int c, boolean isSelf) {
+		// if the point represents a centre cell
+		if (r % 2 == 1 && (c - Math.max(0, r - (2*dim -1)) % 2 == 1)) {
+			return -1;
+		} else if (edge_data.get(getBitLocation(r, c))) {
+			return -2;
+		}
+		
+		// set the edge as been occupied
 		edge_data.set(getBitLocation(r, c));
 
 		// now check if the cells with this edge have been filled
@@ -93,6 +112,15 @@ public class Board {
 		return 0;
 	}
 	
+	/** Check if the edge location has been occupied.
+	 * @param r
+	 * @param c
+	 * @return
+	 */
+	public boolean isOccupied(int r, int c) {
+		return edge_data.get(getBitLocation(r, c));
+	}
+	
 	/** Rotates the board state by 60 degrees clockwise.
 	 */
 	public Board rotateBoard() {
@@ -117,7 +145,10 @@ public class Board {
 				column_read[r_rotate]--;
 				c++;
 				
-				rotated_data.set(getBitLocation(r_rotate, column_read[r_rotate]), edge_data.get(index_count++));
+				rotated_data.set(
+						getBitLocation(r_rotate, column_read[r_rotate]),
+						edge_data.get(index_count++));
+				
 				columns_count++;
 			}
 			
@@ -170,6 +201,8 @@ public class Board {
 		}
 	}
 	
+	/** Retrieve the score difference between yourself and the enemy.
+	 */
 	public int getScore() {
 		return score;
 	}
