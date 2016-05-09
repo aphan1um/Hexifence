@@ -1,4 +1,4 @@
-package hex_test1;
+package core;
 
 import java.awt.Point;
 import java.util.BitSet;
@@ -8,7 +8,6 @@ public class Board {
 	
 	public BitSet edge_data;
 	private int dim;
-	
 	private int score;
 	
 	public Board(int dim) {
@@ -29,9 +28,7 @@ public class Board {
 		c -= Math.max(0, r - (2*dim - 1));
 		int ret_value;
 
-		if (r == 0) {
-			ret_value = c;
-		} else if (r <= 2*dim - 1) {
+		if (r <= 2*dim - 1) {
 			ret_value = 2*dim * r + r*(r-1)/2 + c;
 		} else {
 			ret_value = 6*dim*(2*dim - 1);
@@ -44,12 +41,23 @@ public class Board {
 		return ret_value;
 	}
 	
+	/** Check if the board has been completely filled.
+	 * That is, the board has reached a 'terminal state'.
+	 */
 	public boolean isFinished() {
-		return edge_data.cardinality() == getBitLocation(4*dim - 2, 2*dim - 1);
+		return edge_data.cardinality() == 6*dim*(2*dim - 1) + 1;
 	}
 	
+	/** Make a move by placing a piece on a free edge on the board.
+	 * @param r Row number of edge.
+	 * @param c Column number of edge.
+	 * @param isSelf If you (the agent) is making this move.
+	 * <p>
+	 * If the enemy is making the move, then this should be <code>false</false>.
+	 * </p>
+	 * @return
+	 */
 	public int occupyEdge(int r, int c, boolean isSelf) {
-		System.out.println("Occupying at (" + r + ", " + c + ").");
 		edge_data.set(getBitLocation(r, c));
 
 		// now check if the cells with this edge have been filled
@@ -96,13 +104,12 @@ public class Board {
 		
 		int[] column_read = new int[4*dim - 1];
 		for (int i = 0; i < 4*dim - 1; i++) {
-			column_read[i] = getNumValidEdges(i);
+			column_read[i] = getNumValidEdges(i) + Math.max(0, i - (2*dim - 1));
 		}
 		
 		for (int r = 0; r < 4*dim - 1; r++) {
-			System.out.println("Row " + r + " (count " + (2*dim + r) + " ):");
 			int columns_count = 0;
-			int c = 0;
+			int c = Math.max(0, r - (2*dim - 1));
 			
 			while (columns_count < getNumValidEdges(r)) {
 				int r_rotate = p_start.x + c;
@@ -110,16 +117,8 @@ public class Board {
 				column_read[r_rotate]--;
 				c++;
 				
-				if (column_read[r_rotate] < 0) {
-					System.out.println("skipped");
-					continue;
-				} else {
-					rotated_data.set(getBitLocation(r_rotate, column_read[r_rotate]), edge_data.get(index_count++));
-					columns_count++;
-					
-					System.out.println("(" + r_rotate + ", " + column_read[r_rotate] + ")");
-				}
-				
+				rotated_data.set(getBitLocation(r_rotate, column_read[r_rotate]), edge_data.get(index_count++));
+				columns_count++;
 			}
 			
 		}
@@ -127,6 +126,10 @@ public class Board {
 		return new Board(dim, rotated_data);
 	}
 	
+	/** Rotate the board clockwise by (60*numTimes) degrees.
+	 * @param numTimes Number of times to rotate board clockwise.
+	 * @return A board which has its edges rotated.
+	 */
 	public Board rotateBoard(int numTimes) {
 		Board ret_board = this;
 		
@@ -137,6 +140,10 @@ public class Board {
 		return ret_board;
 	}
 	
+	/** Retrieve the number of valid edges AND invalid edges which
+	 * represent the centre of some cell, for a given row.
+	 * @param r Row number on the board.
+	 */
 	private int getNumValidEdges(int r) {
 		return 2*dim + r - 2*Math.max(0, r - (2*dim - 1));
 	}
@@ -161,6 +168,18 @@ public class Board {
 			
 			score += (isSelf) ? 1 : -1;
 		}
+	}
+	
+	public int getScore() {
+		return score;
+	}
+	
+	public boolean equals(Object obj1) {
+		if (obj1 instanceof Board) {
+			return edge_data.equals(((Board)obj1).edge_data);
+		}
+		
+		return false;
 	}
 	
 	public String toString() {
