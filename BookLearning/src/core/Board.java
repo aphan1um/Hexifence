@@ -1,231 +1,356 @@
 package core;
 
-import java.awt.Point;
-import java.util.BitSet;
+import java.util.Arrays;
+
+import aiproj.hexifence.Piece;
 
 public class Board {
-	// Note that what colour the edge is does not matter; it is who captures it last
+	/** Number of edges surrounding a cell. */
+	private static final int NUM_EDGES = 6;
 	
-	public BitSet edge_data;
-	private int dim;
-	private int score;
+	/** Represents the edges on the board
+	 * (refer to constructor for more details). */
+	private Piece[][] edges;
 	
-	public Board(int dim) {
-		this.dim = dim;
-		score = 0;
-		edge_data = new BitSet();
-	}
-	
-	public Board(int dim, BitSet data) {
-		this(dim);
-		this.edge_data = (BitSet)data.clone();
-	}
-	
-	public Board deepCopy() {
-		Board clone = new Board(dim, this.edge_data);
-		clone.score = this.score;
-		
-		return clone;
-	}
-	
-	// Get the bit location 
-	public int getBitLocation(int r, int c) {
-		c -= Math.max(0, r - (2*dim - 1));
-		int ret_value;
+	/** Represents a cell, where its value is the number
+	 * of occupied cells (so if cells[a][b] = 6, then this
+	 * cell would be captured).
+	 */
+	private int[][] cells;
 
-		if (r <= 2*dim - 1) {
-			ret_value = 2*dim * r + r*(r-1)/2 + c;
-		} else {
-			ret_value = 6*dim*(2*dim - 1);
-			int diff = (4*dim - 1) - 1 - r;
+	/** Dimension of board. */
+	private int dim;
+	/** Difference between number of cells captured by self & enemy. */
+	private int score;
+	/** Number of colored edges on the board. */
+	private int num_colored_edges;
+
+	
+	/** Create an empty Hexifence board (ie. an initial state).
+	 * @param dim Dimension of board.
+	 */
+	public Board(int dim) {
+		// initialize jagged array
+		edges = new Piece[4*dim - 1][];
+		cells = new int[2*dim - 1][];
+		
+		// initialise the 2D edge array
+		for (int r = 0; r < 4*dim - 1; r++) {
 			
-			ret_value -= 2*dim*(diff + 1) - 1 + diff*(diff + 1)/2;
-			ret_value += c;
+			/* For each row, only allocate enough edges, so that
+			 * we only include:
+			 * 
+			 * 		- Valid edges.
+			 * 		- Invalid edges representing a centre of a cell.
+			 * 
+			 * In other words, we ignore invalid which are not "on or 
+			 * inside the game board".
+			 */
+			
+			edges[r] = new Piece[2*dim + r - 2*Math.max(0, r - (2*dim - 1))];
+			Arrays.fill(edges[r], Piece.EMPTY);
 		}
 		
-		return ret_value;
+		// now initialise the 2D cell array
+		// Note: the number of rows with a 'cell centre' is: 2*dim - 1
+		for (int j = 0; j < 2*dim - 1; j++) {
+			cells[j] = new int[dim + j - 2*Math.max(0, j - (dim - 1))];
+		}
+		
+		this.dim = dim;
+		this.score = 0;
+		this.num_colored_edges = 0;
 	}
 	
+	/** Create a board with its fields initialized, except for the two
+	 * 2D arrays <code>edges</code> and <code>cells</code>.
+	 */
+	private Board(int dim, int score, int num_colored_edges) {
+		// prepare the jagged arrays
+		edges = new Piece[4*dim - 1][];
+		cells = new int[2*dim - 1][];
+		
+		this.dim = dim;
+		this.score = score;
+		this.num_colored_edges = num_colored_edges;
+	}
+	
+	/** Create a deep copy of the board.
+	 */
+	public Board deepCopy() {
+		Board copy = new Board(dim, score, num_colored_edges);
+		
+		for (int i = 0; i < copy.edges.length; i++) {
+			copy.edges[i] = Arrays.copyOf(edges[i], edges[i].length);
+		}
+		
+		for (int j = 0; j < copy.cells.length; j++) {
+			copy.cells[j] = Arrays.copyOf(cells[j], cells[j].length);
+		}
+		
+		return copy;
+	}
+
 	/** Check if the board has been completely filled.
 	 * That is, the board has reached a 'terminal state'.
 	 */
 	public boolean isFinished() {
-		return edge_data.cardinality() == 6*dim*(2*dim - 1) + 1;
+		return num_colored_edges == 3*dim*(3*dim - 1);
 	}
 	
-	/** Make a move by placing a piece on a free edge on the board.
+	/** Make an edge closed, caused by some player.
+	 * @param r Row of edge.
+	 * @param c Column of edge.
+	 * @param color The player who occupied this edge.
+	 * @return <code>true</code> if the board successfully registers
+	 * this move.
 	 * <p>
-	 * If this edge is invalid AND represents the centre of a cell,
-	 * then nothing is done, and <code>-1</code> is returned.
+	 * <code>false</code> if the specified coordinates <code>(r, c)</code>
+	 * is not a valid edge, or has already been occupied.
 	 * </p>
-	 * @param r Row number of edge.
-	 * @param c Column number of edge.
-	 * @param isSelf If you (the agent) is making this move.
-	 * <p>
-	 * If the enemy is making the move, then this should be <code>false</false>.
-	 * </p>
-	 * @return
 	 */
-	public int occupyEdge(int r, int c, boolean isSelf) {
-		// if the point represents a centre cell
-		if (r % 2 == 1 && (c - Math.max(0, r - (2*dim -1)) % 2 == 1)) {
-			return -1;
-		} else if (edge_data.get(getBitLocation(r, c))) {
-			return -2;
+	public boolean occupyEdge(int r, int c, Piece color) {
+		// ensure the color of player is only BLUE or RED
+		assert(color == Piece.BLUE || color == Piece.RED);
+
+		/* Check these three things:
+		 * 
+		 * 		- (r, c) doesn't represent a cell centre.
+		 * 		- (r, c) is "on or inside" the game game.
+		 * 		- (r, c) is an empty valid edge.
+		 */
+		
+		if (isOutOfRange(r, c) || isCentreCell(r, c) ||
+				getEdge(r, c) != Piece.EMPTY) {
+			return false;
 		}
 		
-		// set the edge as been occupied
-		edge_data.set(getBitLocation(r, c));
-
-		// now check if the cells with this edge have been filled
+		// set the color of edge
+		edges[r][c - Math.max(0, r - (2*dim - 1))] = color;
+		num_colored_edges++;
+		
+		// now tell cells with this edge that the edge is now 'closed'
 		if (r % 2 == 0) { 	// r even => row does not contain cell centres
 			
 			// check if this edge is connected to cell below
 			if (r + 1 < 4*dim - 1) {
 				if (c % 2 == 0) {
-					checkCell(r + 1, c + 1, isSelf);
+					decrementCell(r + 1, c + 1, color);
 				} else {
-					checkCell(r + 1, c, isSelf);
+					decrementCell(r + 1, c, color);
 				}
 			}
 			
 			// now check above
 			if (r - 1 > 0) {
 				if (c % 2 == 0) {
-					checkCell(r - 1, c - 1, isSelf);
+					decrementCell(r - 1, c - 1, color);
 				} else {
-					checkCell(r - 1, c, isSelf);
+					decrementCell(r - 1, c, color);
 				}
 			}
 			
 			
 		} else {		// r odd => row contains cell centres
 			if (c - 1 >= 0) {
-				checkCell(r, c - 1, isSelf);
+				decrementCell(r, c - 1, color);
 			}
 			
 			if (c + 1 < 2*dim + r - 2*Math.max(0, r - (2*dim - 1))) {
-				checkCell(r, c + 1, isSelf);
+				decrementCell(r, c + 1, color);
 			}
 		}
 		
-		return 0;
+		return true;
 	}
-	
-	/** Check if the edge location has been occupied.
-	 * @param r
-	 * @param c
-	 * @return
+
+	/** Indicate to the cell that one of its edges has been
+	 * occupied/closed.
 	 */
-	public boolean isOccupied(int r, int c) {
-		return edge_data.get(getBitLocation(r, c));
-	}
-	
-	/** Rotates the board state by 60 degrees clockwise.
-	 */
-	public Board rotateBoard() {
-		System.out.println("Beginning rotation");
+	private void decrementCell(int r, int c, Piece color) {
+		// convert (r, c) into "cell numbering" coordinates
+		int r_cell = (r - 1)/2;
+		int c_cell = (c - Math.max(0, r - (2*dim - 1)) - 1)/2;
 		
-		Point p_start = new Point(0, 2*dim - 1);
-		BitSet rotated_data = new BitSet();
-		int index_count = 0;
-		
-		int[] column_read = new int[4*dim - 1];
-		for (int i = 0; i < 4*dim - 1; i++) {
-			column_read[i] = getNumValidEdges(i) + Math.max(0, i - (2*dim - 1));
-		}
-		
-		for (int r = 0; r < 4*dim - 1; r++) {
-			int columns_count = 0;
-			int c = Math.max(0, r - (2*dim - 1));
-			
-			while (columns_count < getNumValidEdges(r)) {
-				int r_rotate = p_start.x + c;
+		if (cells[r_cell][c_cell] != NUM_EDGES) {
+			cells[r_cell][c_cell]++;
+
+			if (cells[r_cell][c_cell] == NUM_EDGES) {
+				// color centre cell as captured
+				edges[r][c] = color;
 				
-				column_read[r_rotate]--;
-				c++;
-				
-				rotated_data.set(
-						getBitLocation(r_rotate, column_read[r_rotate]),
-						edge_data.get(index_count++));
-				
-				columns_count++;
+				// if the cell has been captured, change score based if
+				// myself or enemy occupied the last edge last
+				score += (Main.myColor == color) ? 1 : -1;
 			}
-			
-		}
-		
-		return new Board(dim, rotated_data);
-	}
-	
-	/** Rotate the board clockwise by (60*numTimes) degrees.
-	 * @param numTimes Number of times to rotate board clockwise.
-	 * @return A board which has its edges rotated.
-	 */
-	public Board rotateBoard(int numTimes) {
-		Board ret_board = this;
-		
-		for (int i = 0; i < numTimes % 6; i++) {
-			ret_board = ret_board.rotateBoard();
-		}
-		
-		return ret_board;
-	}
-	
-	/** Retrieve the number of valid edges AND invalid edges which
-	 * represent the centre of some cell, for a given row.
-	 * @param r Row number on the board.
-	 */
-	private int getNumValidEdges(int r) {
-		return 2*dim + r - 2*Math.max(0, r - (2*dim - 1));
-	}
-	
-	private void checkCell(int r, int c, boolean isSelf) {
-		// System.out.println("Checking at: " + r + ", " + c);
-		
-		int cell_r2 = getBitLocation(r, c);
-		
-		if (edge_data.get(cell_r2)) {
-			return;
-		}
-		
-		int cell_r1 = getBitLocation(r - 1, c);
-		int cell_r3 = getBitLocation(r + 1, c);
-		
-		if (edge_data.get(cell_r2 - 1) && edge_data.get(cell_r2 + 1) &&
-				edge_data.get(cell_r1) && edge_data.get(cell_r1 - 1) &&
-				edge_data.get(cell_r3) && edge_data.get(cell_r3 + 1)) {
-			
-			edge_data.set(cell_r2);
-			
-			score += (isSelf) ? 1 : -1;
 		}
 	}
 	
-	/** Retrieve the score difference between yourself and the enemy.
+	/** Get score difference between self and enemy.
 	 */
 	public int getScore() {
 		return score;
 	}
 	
-	public boolean equals(Object obj1) {
-		if (obj1 instanceof Board) {
-			return edge_data.equals(((Board)obj1).edge_data);
+	/** Get the status of an edge (empty, or captured)
+	 * <p>
+	 * If the edge is out of range, <code>null</code> is
+	 * returned instead.
+	 * </p>
+	 */
+	public Piece getEdge(int r, int c) {
+		if (isOutOfRange(r, c)) {
+			return null;
+		}
+		
+		return edges[r][c - Math.max(0, r - (2*dim - 1))];
+	}
+	
+	/** Get a 2D array of edges representing the board. */
+	public Piece[][] getEdges() {
+		return edges;
+	}
+	
+	/** Check if the coordinate (r, c) actually represents the
+	 * centre of some cell.
+	 */
+	private boolean isCentreCell(int r, int c) {
+		return (r % 2 == 1) &&
+				(c - Math.max(0, r - (2*dim -1)) % 2 == 1);
+	}
+	
+	/** Checks if (r, c) is not "on or inside the game board".
+	 */
+	private boolean isOutOfRange(int r, int c) {
+		return (r < 0 || r >= 4*dim ||
+				c < Math.max(0, r - (2*dim - 1)) ||
+				c - Math.max(0, r - (2*dim - 1)) >= edges[r].length);
+	}
+	
+	/** Rotate a point (r, c) 60 degrees in a hexagonal game board.
+	 * 
+	 * Big credit to: http://gamedev.stackexchange.com/a/55493
+	 * for an answer to rotating a hexagonal board.
+	 * 
+	 * Code was edited to adjust to a different edge coordinate
+	 * system Hexifence uses.
+	 */
+	private static int[] rotateEdge(int r, int c, int dim, int numRotate) {
+		// get difference between (r,c) and the centre of game board
+		r = r - (2*dim - 1);
+		c = c - (2*dim - 1);
+		
+		// adjust point to be ready for rotation
+		c = c - r;
+
+		// convert into 3D coordinates (xx, yy, zz)
+		int xx = c - (r - r&1)/2;
+		int zz = r;
+		int yy = -xx - zz;
+		
+		int[] cube_coord = { xx, yy, zz };
+
+		// rotate 60 degrees clockwise
+		xx = (numRotate % 2 == 0 ? 1 : -1) * cube_coord[numRotate % 3];
+		yy = (numRotate % 2 == 0 ? 1 : -1) * cube_coord[(numRotate + 1) % 3];
+		zz = (numRotate % 2 == 0 ? 1 : -1) * cube_coord[(numRotate + 2) % 3];
+		
+		// convert back to (r, c) coordinates
+		c = xx + (zz - zz&1)/2;
+		r = zz;
+		
+		// adjust point
+		c = c + r;
+
+		return new int[] {r + (2*dim - 1), c + (2*dim - 1)};
+	}
+	
+	/** Get a rotated board by <code>(60*numRotate)</code>
+	 * degrees clockwise.
+	 */
+	public Board rotateBoard(int numRotate) {
+		// if we are just rotating by 0 degrees..
+		if (numRotate % NUM_EDGES == 0) {
+			return this;
+		}
+
+		Board b2 = new Board(this.dim);
+		
+		for (int i = 0; i < edges.length; i++) {
+			for (int j = Math.max(0, i - (2*dim - 1));
+					j < Math.max(0, i - (2*dim - 1)) + edges[i].length; j++) {
+				int[] rotated_edge = rotateEdge(i, j, dim, numRotate);
+
+				b2.occupyEdge(rotated_edge[0], rotated_edge[1],
+						getEdge(rotated_edge[0], rotated_edge[1]));
+			}
+		}
+		
+		// TODO: rotate edge numbers..
+		b2.edges = this.edges;
+		b2.num_colored_edges = this.num_colored_edges;
+		b2.score = b2.score;
+		
+		return b2;
+	}
+	
+	/** Compare two boards, and see if b2 is rotationally symmetric
+	 * to this board.
+	 * @param b2 The board to compare.
+	 * @return <code>true</code> if b2 can be rotated by a multiple of
+	 * 60 degrees and match the corresponding edges of this board.
+	 */
+	public boolean isRotateSymmetric(Board b2) {
+		for (int numRotate = 0; numRotate < NUM_EDGES; numRotate++) {
+			if (this.equals(rotateBoard(numRotate))) {
+				return true;
+			}
 		}
 		
 		return false;
 	}
 	
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		int index_count = 0;
+	public boolean equals(Object obj) {
+		if (obj instanceof Board) {
+			Board b2 = (Board)obj;
+			
+			// ensure the dimension, score, and the number of occupied
+			// edges are the same
+			if (b2.dim != this.dim || b2.score != this.score ||
+					b2.num_colored_edges != this.num_colored_edges) {
+				return false;
+			}
+			
+			// check each corresponding edge between this board and obj2
+			// are the same
+			for (int i = 0; i < b2.edges.length; i++) {
+				for (int j = 0; j < b2.edges[i].length; j++) {
+					// if the two corresponding edges are not the same
+					if (this.edges[i][j] != b2.edges[i][j]) {
+						return false;
+					}
+				}
+			}
+		}
 		
-		for (int r = 0; r < 4*dim - 1; r++) {
-			for (int c = 0; c < getNumValidEdges(r); c++) {
-				sb.append(edge_data.get(index_count++) ? '1' : '0');
+		return true;
+	}
+	
+	/** Return a bit string view of the board, where <code>0</code>
+	 * represents an unoccupied cell/edge, and <code>1</code> otherwise.
+	 */
+	public String toBitString() {
+		StringBuilder sb = new StringBuilder();
+		
+		for (int i = 0; i < edges.length; i++) {
+			
+			for (int j = 0; j < edges[i].length; j++) {
+				sb.append((edges[i][j] == Piece.EMPTY) ? 0 : 1);
 			}
 			
 			sb.append(' ');
 		}
+		
 		
 		return sb.toString();
 	}
