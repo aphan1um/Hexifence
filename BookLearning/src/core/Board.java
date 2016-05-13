@@ -8,6 +8,9 @@ public class Board {
 	/** Number of edges surrounding a cell. */
 	private static final int NUM_EDGES = 6;
 	
+	private static final int[][] EDGE_DIFF =
+		{ {0, -1}, {0, 1}, {-1, -1}, {-1, 0}, {1, 0}, {1, 1} };
+	
 	/** Represents the edges on the board
 	 * (refer to constructor for more details). */
 	private Piece[][] edges;
@@ -24,12 +27,17 @@ public class Board {
 	private int score;
 	/** Number of colored edges on the board. */
 	private int num_colored_edges;
+	/** The current turn for this board state. */
+	private Piece curr_turn;
 
 	
 	/** Create an empty Hexifence board (ie. an initial state).
 	 * @param dim Dimension of board.
 	 */
-	public Board(int dim) {
+	public Board(int dim, Piece initTurn) {
+		// ensure Piece is a player color
+		assert(initTurn == Piece.BLUE || initTurn == Piece.RED);
+		
 		// initialize jagged array
 		edges = new Piece[4*dim - 1][];
 		cells = new int[2*dim - 1][];
@@ -60,12 +68,14 @@ public class Board {
 		this.dim = dim;
 		this.score = 0;
 		this.num_colored_edges = 0;
+		this.curr_turn = initTurn;
 	}
 	
 	/** Create a board with its fields initialized, except for the two
 	 * 2D arrays <code>edges</code> and <code>cells</code>.
 	 */
-	private Board(int dim, int score, int num_colored_edges) {
+	private Board(int dim, int score, int num_colored_edges,
+			Piece initTurn) {
 		// prepare the jagged arrays
 		edges = new Piece[4*dim - 1][];
 		cells = new int[2*dim - 1][];
@@ -73,12 +83,16 @@ public class Board {
 		this.dim = dim;
 		this.score = score;
 		this.num_colored_edges = num_colored_edges;
+		this.curr_turn = initTurn;
 	}
 	
 	/** Create a deep copy of the board.
+	 * 
+	 * @param alternate If the current turn of the copied board
+	 * should switch.
 	 */
-	public Board deepCopy() {
-		Board copy = new Board(dim, score, num_colored_edges);
+	public Board deepCopy(boolean alternate) {
+		Board copy = new Board(dim, score, num_colored_edges, curr_turn);
 		
 		for (int i = 0; i < copy.edges.length; i++) {
 			copy.edges[i] = Arrays.copyOf(edges[i], edges[i].length);
@@ -88,6 +102,10 @@ public class Board {
 			copy.cells[j] = Arrays.copyOf(cells[j], cells[j].length);
 		}
 		
+		if (alternate) {
+			copy.curr_turn = (curr_turn == Piece.BLUE) ? Piece.RED : Piece.BLUE;
+		}
+		
 		return copy;
 	}
 
@@ -95,6 +113,8 @@ public class Board {
 	 * That is, the board has reached a 'terminal state'.
 	 */
 	public boolean isFinished() {
+		// Note: the number of 'valid' edges on the board is
+		// 3d(3d - 1) where d = dim
 		return num_colored_edges == 3*dim*(3*dim - 1);
 	}
 	
@@ -200,6 +220,11 @@ public class Board {
 		return score;
 	}
 	
+	/** Get the current turn for this board. */
+	public Piece getCurrTurn() {
+		return curr_turn;
+	}
+	
 	/** Get the status of an edge (empty, or captured)
 	 * <p>
 	 * If the edge is out of range, <code>null</code> is
@@ -234,6 +259,40 @@ public class Board {
 				c < Math.max(0, r - (2*dim - 1)) ||
 				c - Math.max(0, r - (2*dim - 1)) >= edges[r].length);
 	}
+
+	/** Convert a given (r, c) coordinate into a 3D cube coordinate
+	 * system.
+	 * <p>
+	 * Refer to: http://www.redblobgames.com/grids/hexagons/ for a
+	 * more detailed explanation. Apparently, calculating distance
+	 * and rotations is easier when using this 3D coordinate system.
+	 * </p>
+	 */
+	private static int[] getCubeCoord(int r, int c, int dim) {
+		int[] ret = new int[3];
+		
+		// get difference between (r,c) and the centre of game board
+		r = r - (2*dim - 1);
+		c = c - (2*dim - 1);
+				
+		// adjust point
+		c = c - r;
+		
+		ret[0] = c - (r - r&1)/2;
+		ret[2] = r;
+		ret[1] = -ret[0] - ret[2];
+		
+		return ret;
+	}
+	
+	/** Get the distance between a given coordinate (r, c), and
+	 * the centre of the game board.
+	 */
+	public static int getEdgeDist(int r, int c, int dim) {
+		int[] p = getCubeCoord(r, c, dim);
+		
+		return (Math.abs(p[0]) + Math.abs(p[1]) + Math.abs(p[2]))/2;
+	}
 	
 	/** Rotate a point (r, c) 60 degrees anti-clockwise in a hexagonal
 	 * game board.
@@ -245,30 +304,21 @@ public class Board {
 	 * system Hexifence uses.
 	 */
 	public static int[] rotateEdge(int r, int c, int dim, int numRotate) {
-		// get difference between (r,c) and the centre of game board
-		r = r - (2*dim - 1);
-		c = c - (2*dim - 1);
-		
-		// adjust point to be ready for rotation
-		c = c - r;
-
 		// convert into 3D coordinates (xx, yy, zz)
-		int xx = c - (r - r&1)/2;
-		int zz = r;
-		int yy = -xx - zz;
-		
-		int[] cube_coord = { xx, yy, zz };
+		int[] cube_coord = getCubeCoord(r, c, dim);
+		int[] cube_rotate = new int[3];
 
 		// rotate 60 degrees anti-clockwise
-		xx = (numRotate % 2 == 0 ? 1 : -1) * cube_coord[numRotate % 3];
-		yy = (numRotate % 2 == 0 ? 1 : -1) * cube_coord[(numRotate + 1) % 3];
-		zz = (numRotate % 2 == 0 ? 1 : -1) * cube_coord[(numRotate + 2) % 3];
+		int sign = (numRotate % 2 == 0) ? 1 : -1;
+		cube_rotate[0] = sign * cube_coord[numRotate % 3];
+		cube_rotate[1] = sign * cube_coord[(numRotate + 1) % 3];
+		cube_rotate[2] = sign * cube_coord[(numRotate + 2) % 3];
 		
 		// convert back to (r, c) coordinates
-		c = xx + (zz - zz&1)/2;
-		r = zz;
+		c = cube_rotate[0] + (cube_rotate[2] - cube_rotate[2]&1)/2;
+		r = cube_rotate[2];
 
-		// adjust point
+		// adjust point to be in Hexifence coordinates
 		c = c + r;
 
 		return new int[] {r + (2*dim - 1), c + (2*dim - 1)};
@@ -283,12 +333,14 @@ public class Board {
 			return this;
 		}
 
-		Board b2 = new Board(this.dim);
+		Board b2 = new Board(dim, curr_turn);
 		
 		for (int i = 0; i < edges.length; i++) {
 			for (int j = Math.max(0, i - (2*dim - 1));
 					j < Math.max(0, i - (2*dim - 1)) + edges[i].length; j++) {
 				
+				// only choose edges which are not empty (since 'b2'
+				// initially starts with all pieces empty)
 				if (getEdge(i, j) == Piece.EMPTY) {
 					continue;
 				}
@@ -311,6 +363,13 @@ public class Board {
 	 * 60 degrees and match the corresponding edges of this board.
 	 */
 	public boolean isRotateSymmetric(Board b2) {
+		// ensure the dimension, score, and the number of occupied
+		// edges are the same
+		if (b2.dim != this.dim || b2.score != this.score ||
+				b2.num_colored_edges != this.num_colored_edges) {
+			return false;
+		}
+
 		for (int numRotate = 0; numRotate < NUM_EDGES; numRotate++) {
 			if (this.equals(rotateBoard(numRotate))) {
 				return true;
@@ -319,6 +378,105 @@ public class Board {
 		
 		return false;
 	}
+	
+	/** Check if this board is "outer symmetric" with b2.
+	 * <p>
+	 * Two boards are considered "outer symmetric" if the number
+	 * of "outer edges" for each cell that contains the is the same
+	 * between the two boards.
+	 * </p>
+	 */
+	public boolean isOuterSymmetric(Board b2) {
+		for (int i = 1; i < edges.length; i+=2) {
+			for (int j = 1; j < edges[i].length; j+= 2) {
+
+				if (countOuterEdges(i, j) != b2.countOuterEdges(i, j)) {
+					return false;
+				}
+
+				/* 
+				 * If we're NOT at the 1st or last row containing
+				 * 'cell centres', then we can move to the last centre
+				 * cell in that row, since the cells inbetween have
+				 * no 'outer edges'.
+				 */
+				if ((i != 1 || i != edges.length - 2) && j == 1) {
+					j = edges[i].length - 4;
+				}
+			}
+		}
+		
+		return true;
+	}
+	
+	/** Count the number of "outer edges" surrounding a centre cell
+	 * <code>(r, c)</code>.
+	 * <p>
+	 * An edge is called an "outer edge" if it is a side of ONLY
+	 * one cell.
+	 * </p>
+	 */
+	public int countOuterEdges(int r, int c) {
+		int count = 0;
+		
+		// ensure (r, c) is a centre of some cell
+		if (!isCentreCell(r, c)) {
+			return count;
+		}
+		
+		// go around each of the cell's adjacent sides
+		for (int[] diff : EDGE_DIFF) {
+			int edge_r = r + diff[0];
+			int edge_c = c + diff[1];
+			
+			// the distance between an "outer edge" and the centre of
+			// the board is: 2*dim - 1
+			if (getEdgeDist(edge_r, edge_c, dim) == 2*dim - 1) {
+				count += (getEdge(edge_r, edge_c) == Piece.EMPTY) ? 0 : 1;
+			}
+		}
+
+		return count;
+	}
+	
+	/** Check if the corresponding interior edges of this board is the
+	 * same as the one from b2.
+	 * <p>
+	 * An edge is an "interior edge" if it is a side of two cells.
+	 * </p>
+	 */
+	private boolean isInteriorEqual(Board b2) {
+		// ensure the dimension, score, and the number of occupied
+		// edges are the same
+		if (b2.dim != this.dim || b2.score != this.score ||
+				b2.num_colored_edges != this.num_colored_edges) {
+			return false;
+		}
+		
+		// consider only interior edges, excluding 'outer' ones
+		for (int i = 1; i < b2.edges.length - 1; i++) {
+			for (int j = 1; j < b2.edges[i].length - 1; j++) {
+				// if two corresponding edges do not match
+				if (this.edges[i][j] != b2.edges[i][j]) {
+					return false;
+				}
+			}
+		}
+		
+		return true;
+	}
+	
+	public boolean equals(Object obj) {
+		if (obj instanceof Board && isInteriorEqual((Board)obj) && 
+				isOuterSymmetric((Board)obj) &&
+				((Board)obj).getCurrTurn() == this.getCurrTurn()) {
+			return true;
+		}
+		
+		return false;
+	}
+	
+	/* TODO: OLD EQUAL OVERRIDE (kept in case of future use)
 	
 	public boolean equals(Object obj) {
 		if (obj instanceof Board) {

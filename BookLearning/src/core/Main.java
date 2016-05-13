@@ -5,27 +5,36 @@ import aiproj.hexifence.Piece;
 public class Main {
 	// NOTE: Temporary static variables below (may be removed in future)
 	
-	/** Dimension of board to the used. */
-	private static final int DIM = 1;
+	/** Dimension of board to be used. */
+	private static final int DIM = 2;
 	/** Color of our agent. */
 	public static final Piece myColor = Piece.RED;
+	/** Color of player to start the game. */
+	public static final Piece playerStart = Piece.BLUE;
 	
 	public static void main(String[] args) {
-		Board b = new Board(DIM);
+		Board b = new Board(DIM, myColor);
+		Board c = new Board(DIM, myColor);
 		
 		System.out.println("Performing a rotation test:");
 		b.occupyEdge(0, 1, myColor);
 		b.occupyEdge(1, 0, myColor);
-		System.out.println(b.toBitString());
-		System.out.println(b.rotateBoard(5).toBitString());
+		// System.out.println(b.toBitString() + " " + b.getCurrTurn());
+
+		c.occupyEdge(0, 0, myColor);
+		c.occupyEdge(1, 0, myColor);
 		
+		System.out.println(c.equals(b));
+		
+		/*
 		System.out.println("\nPerforming DFS...");
 		System.out.println("Minimax value of initial state: " + 
-				minimax_value(new SearchTree.Node(new Board(DIM), null, myColor)));
+				minimax_value(new SearchTree.Node(new Board(DIM, playerStart), null)));
+		*/
 	}
 
 	public static int minimax_value(SearchTree.Node n) {
-		if (n.getState().isFinished()) {
+		if (n.getState().isFinished()) {		// terminal state
 			return n.getState().getScore();
 		}
 		
@@ -34,7 +43,7 @@ public class Main {
 		// TODO: fix duplicity
 		int value = minimax_value(n.getChildren().get(0));
 
-		if (n.getColorTurn() == myColor) {		// my turn => maximise score
+		if (n.getState().getCurrTurn() == myColor) {		// my turn => maximise score
 			for (SearchTree.Node child : n.getChildren()) {
 				value = Math.max(value, minimax_value(child));
 			}
@@ -46,6 +55,7 @@ public class Main {
 		
 		n.setMiniMax(value);
 		
+		
 		return value;
 	}
 	
@@ -54,15 +64,15 @@ public class Main {
 			return;
 		}
 		
-		Board child_state = n.getState().deepCopy();
+		Board child_state = n.getState().deepCopy(true);
 
 		for (int r = 0; r < child_state.getEdges().length; r++) {
 			for (int c = 0; c < child_state.getEdges()[r].length; c++) {
-				if (child_state.occupyEdge(r, c + Math.max(0, r - (2 * DIM - 1)), n.getColorTurn())) {
+				if (child_state.occupyEdge(r, c + Math.max(0, r - (2 * DIM - 1)), child_state.getCurrTurn())) {
 					n.addChild(child_state);
 				}
 
-				child_state = n.getState().deepCopy();
+				child_state = n.getState().deepCopy(true);
 			}
 		}
 	}
