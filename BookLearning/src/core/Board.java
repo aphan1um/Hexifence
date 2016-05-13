@@ -166,12 +166,20 @@ public class Board {
 
 	/** Indicate to the cell that one of its edges has been
 	 * occupied/closed.
+	 * 
+	 * If the coordinate (r, c) is not "on or in the game
+	 * board", then no action is taken.
 	 */
 	private void decrementCell(int r, int c, Piece color) {
+		// do nothing if out or range
+		if (isOutOfRange(r, c)) {
+			return;
+		}
+
 		// convert (r, c) into "cell numbering" coordinates
 		int r_cell = (r - 1)/2;
 		int c_cell = (c - Math.max(0, r - (2*dim - 1)) - 1)/2;
-		
+
 		if (cells[r_cell][c_cell] != NUM_EDGES) {
 			cells[r_cell][c_cell]++;
 
@@ -227,7 +235,8 @@ public class Board {
 				c - Math.max(0, r - (2*dim - 1)) >= edges[r].length);
 	}
 	
-	/** Rotate a point (r, c) 60 degrees in a hexagonal game board.
+	/** Rotate a point (r, c) 60 degrees anti-clockwise in a hexagonal
+	 * game board.
 	 * 
 	 * Big credit to: http://gamedev.stackexchange.com/a/55493
 	 * for an answer to rotating a hexagonal board.
@@ -235,7 +244,7 @@ public class Board {
 	 * Code was edited to adjust to a different edge coordinate
 	 * system Hexifence uses.
 	 */
-	private static int[] rotateEdge(int r, int c, int dim, int numRotate) {
+	public static int[] rotateEdge(int r, int c, int dim, int numRotate) {
 		// get difference between (r,c) and the centre of game board
 		r = r - (2*dim - 1);
 		c = c - (2*dim - 1);
@@ -250,7 +259,7 @@ public class Board {
 		
 		int[] cube_coord = { xx, yy, zz };
 
-		// rotate 60 degrees clockwise
+		// rotate 60 degrees anti-clockwise
 		xx = (numRotate % 2 == 0 ? 1 : -1) * cube_coord[numRotate % 3];
 		yy = (numRotate % 2 == 0 ? 1 : -1) * cube_coord[(numRotate + 1) % 3];
 		zz = (numRotate % 2 == 0 ? 1 : -1) * cube_coord[(numRotate + 2) % 3];
@@ -258,7 +267,7 @@ public class Board {
 		// convert back to (r, c) coordinates
 		c = xx + (zz - zz&1)/2;
 		r = zz;
-		
+
 		// adjust point
 		c = c + r;
 
@@ -266,7 +275,7 @@ public class Board {
 	}
 	
 	/** Get a rotated board by <code>(60*numRotate)</code>
-	 * degrees clockwise.
+	 * degrees anti-clockwise.
 	 */
 	public Board rotateBoard(int numRotate) {
 		// if we are just rotating by 0 degrees..
@@ -279,17 +288,18 @@ public class Board {
 		for (int i = 0; i < edges.length; i++) {
 			for (int j = Math.max(0, i - (2*dim - 1));
 					j < Math.max(0, i - (2*dim - 1)) + edges[i].length; j++) {
-				int[] rotated_edge = rotateEdge(i, j, dim, numRotate);
+				
+				if (getEdge(i, j) == Piece.EMPTY) {
+					continue;
+				}
 
-				b2.occupyEdge(rotated_edge[0], rotated_edge[1],
-						getEdge(rotated_edge[0], rotated_edge[1]));
+				int[] rotated_edge = rotateEdge(i, j, dim, numRotate);
+				b2.occupyEdge(rotated_edge[0], rotated_edge[1], getEdge(i, j));
 			}
 		}
 		
-		// TODO: rotate edge numbers..
-		b2.edges = this.edges;
-		b2.num_colored_edges = this.num_colored_edges;
-		b2.score = b2.score;
+		// TODO: rotate cell numbers..
+		b2.cells = this.cells;
 		
 		return b2;
 	}

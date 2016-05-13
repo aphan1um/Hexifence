@@ -12,10 +12,14 @@ public class Main {
 	
 	public static void main(String[] args) {
 		Board b = new Board(DIM);
-
-		System.out.println(b.rotateBoard(1).toBitString());
 		
-		System.out.println("Performing DFS...");
+		System.out.println("Performing a rotation test:");
+		b.occupyEdge(0, 1, myColor);
+		b.occupyEdge(1, 0, myColor);
+		System.out.println(b.toBitString());
+		System.out.println(b.rotateBoard(5).toBitString());
+		
+		System.out.println("\nPerforming DFS...");
 		System.out.println("Minimax value of initial state: " + 
 				minimax_value(new SearchTree.Node(new Board(DIM), null, myColor)));
 	}
