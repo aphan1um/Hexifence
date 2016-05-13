@@ -26,7 +26,7 @@ public class Board {
 	/** Difference between number of cells captured by self & enemy. */
 	private int score;
 	/** Number of colored edges on the board. */
-	private int num_colored_edges;
+	public int num_colored_edges;
 	/** The current turn for this board state. */
 	private Piece curr_turn;
 
@@ -248,8 +248,7 @@ public class Board {
 	 * centre of some cell.
 	 */
 	private boolean isCentreCell(int r, int c) {
-		return (r % 2 == 1) &&
-				(c - Math.max(0, r - (2*dim -1)) % 2 == 1);
+		return (r % 2 == 1) && (c % 2 == 1);
 	}
 	
 	/** Checks if (r, c) is not "on or inside the game board".
@@ -352,7 +351,7 @@ public class Board {
 		
 		// TODO: rotate cell numbers..
 		b2.cells = this.cells;
-		
+
 		return b2;
 	}
 	
@@ -371,7 +370,7 @@ public class Board {
 		}
 
 		for (int numRotate = 0; numRotate < NUM_EDGES; numRotate++) {
-			if (this.equals(rotateBoard(numRotate))) {
+			if (this.equals(b2.rotateBoard(numRotate))) {
 				return true;
 			}
 		}
@@ -387,10 +386,11 @@ public class Board {
 	 * </p>
 	 */
 	public boolean isOuterSymmetric(Board b2) {
-		for (int i = 1; i < edges.length; i+=2) {
-			for (int j = 1; j < edges[i].length; j+= 2) {
+		for (int i = 1; i < edges.length; i += 2) {
+			for (int j = Math.max(0, i - (2*dim - 1)) + 1;
+					j < Math.max(0, i - (2*dim - 1)) + edges[i].length; j += 2) {
 
-				if (countOuterEdges(i, j) != b2.countOuterEdges(i, j)) {
+				if (this.countOuterEdges(i, j) != b2.countOuterEdges(i, j)) {
 					return false;
 				}
 
@@ -401,7 +401,7 @@ public class Board {
 				 * no 'outer edges'.
 				 */
 				if ((i != 1 || i != edges.length - 2) && j == 1) {
-					j = edges[i].length - 4;
+					j = Math.max(0, i - (2*dim - 1)) + edges[i].length - 4;
 				}
 			}
 		}
