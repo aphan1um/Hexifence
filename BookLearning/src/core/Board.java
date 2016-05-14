@@ -7,7 +7,8 @@ import aiproj.hexifence.Piece;
 public class Board {
 	/** Number of edges surrounding a cell. */
 	private static final int NUM_EDGES = 6;
-	
+	/** Coordinate difference between a cell centre
+	 * and any of the six edges making up that cell. */
 	private static final int[][] EDGE_DIFF =
 		{ {0, -1}, {0, 1}, {-1, -1}, {-1, 0}, {1, 0}, {1, 1} };
 	
@@ -71,19 +72,13 @@ public class Board {
 		this.curr_turn = initTurn;
 	}
 	
-	/** Create a board with its fields initialized, except for the two
-	 * 2D arrays <code>edges</code> and <code>cells</code>.
+	/** Create a board with only the 2D array's <code>edges</code>
+	 * and <code>cells</code> partly initialized. 
 	 */
-	private Board(int dim, int score, int num_colored_edges,
-			Piece initTurn) {
+	private Board(int dim) {
 		// prepare the jagged arrays
 		edges = new Piece[4*dim - 1][];
 		cells = new int[2*dim - 1][];
-		
-		this.dim = dim;
-		this.score = score;
-		this.num_colored_edges = num_colored_edges;
-		this.curr_turn = initTurn;
 	}
 	
 	/** Create a deep copy of the board.
@@ -92,7 +87,7 @@ public class Board {
 	 * should switch.
 	 */
 	public Board deepCopy(boolean alternate) {
-		Board copy = new Board(dim, score, num_colored_edges, curr_turn);
+		Board copy = new Board(dim);
 		
 		for (int i = 0; i < copy.edges.length; i++) {
 			copy.edges[i] = Arrays.copyOf(edges[i], edges[i].length);
@@ -106,24 +101,19 @@ public class Board {
 			copy.curr_turn = (curr_turn == Piece.BLUE) ? Piece.RED : Piece.BLUE;
 		}
 		
+		copy.dim = dim;
+		copy.score = score;
+		copy.num_colored_edges = num_colored_edges;
+		
 		return copy;
-	}
-
-	/** Check if the board has been completely filled.
-	 * That is, the board has reached a 'terminal state'.
-	 */
-	public boolean isFinished() {
-		// Note: the number of 'valid' edges on the board is
-		// 3d(3d - 1) where d = dim
-		return num_colored_edges == 3*dim*(3*dim - 1);
 	}
 	
 	/** Make an edge closed, caused by some player.
 	 * @param r Row of edge.
 	 * @param c Column of edge.
 	 * @param color The player who occupied this edge.
-	 * @return <code>true</code> if the board successfully registers
-	 * this move.
+	 * @return <code>true</code> if the board successfully
+	 * registers this move.
 	 * <p>
 	 * <code>false</code> if the specified coordinates <code>(r, c)</code>
 	 * is not a valid edge, or has already been occupied.
@@ -176,14 +166,14 @@ public class Board {
 				decrementCell(r, c - 1, color);
 			}
 			
-			if (c + 1 < 2*dim + r - 2*Math.max(0, r - (2*dim - 1))) {
+			if (c + 1 <= getMaxColumn(r, dim)) {
 				decrementCell(r, c + 1, color);
 			}
 		}
 		
 		return true;
 	}
-
+	
 	/** Indicate to the cell that one of its edges has been
 	 * occupied/closed.
 	 * 
@@ -212,6 +202,23 @@ public class Board {
 				score += (Main.myColor == color) ? 1 : -1;
 			}
 		}
+	}
+	
+	/** Check if the board has been completely filled.
+	 * That is, the board has reached a 'terminal state'.
+	 */
+	public boolean isFinished() {
+		// Note: the number of 'valid' edges on the board is
+		// 3d(3d - 1) where d = dim
+		return num_colored_edges == 3*dim*(3*dim - 1);
+	}
+	
+	/** Get the maximum column number 'K', given a row
+	 * from (r, c) such that (r, K) is the last valid
+	 * edge in that row. 
+	 */
+	private static int getMaxColumn(int r, int dim) {
+		return 2*dim + Math.min(r, 2*dim - 1) - 1;
 	}
 	
 	/** Get score difference between self and enemy.
@@ -247,7 +254,7 @@ public class Board {
 	/** Check if the coordinate (r, c) actually represents the
 	 * centre of some cell.
 	 */
-	private boolean isCentreCell(int r, int c) {
+	private static boolean isCentreCell(int r, int c) {
 		return (r % 2 == 1) && (c % 2 == 1);
 	}
 	
@@ -255,8 +262,8 @@ public class Board {
 	 */
 	private boolean isOutOfRange(int r, int c) {
 		return (r < 0 || r >= 4*dim ||
-				c < Math.max(0, r - (2*dim - 1)) ||
-				c - Math.max(0, r - (2*dim - 1)) >= edges[r].length);
+				c - Math.max(0, r - (2*dim - 1)) < 0  ||
+				c > getMaxColumn(r, dim));
 	}
 
 	/** Convert a given (r, c) coordinate into a 3D cube coordinate
@@ -336,7 +343,7 @@ public class Board {
 		
 		for (int i = 0; i < edges.length; i++) {
 			for (int j = Math.max(0, i - (2*dim - 1));
-					j < Math.max(0, i - (2*dim - 1)) + edges[i].length; j++) {
+					j <= getMaxColumn(i, dim); j++) {
 				
 				// only choose edges which are not empty (since 'b2'
 				// initially starts with all pieces empty)
@@ -370,6 +377,7 @@ public class Board {
 		}
 
 		for (int numRotate = 0; numRotate < NUM_EDGES; numRotate++) {
+			System.out.println(numRotate + "   " + b2.rotateBoard(numRotate).toBitString());
 			if (this.equals(b2.rotateBoard(numRotate))) {
 				return true;
 			}
@@ -385,11 +393,10 @@ public class Board {
 	 * between the two boards.
 	 * </p>
 	 */
-	public boolean isOuterSymmetric(Board b2) {
+	private boolean isOuterSymmetric(Board b2) {
 		for (int i = 1; i < edges.length; i += 2) {
 			for (int j = Math.max(0, i - (2*dim - 1)) + 1;
-					j < Math.max(0, i - (2*dim - 1)) + edges[i].length; j += 2) {
-
+					j < getMaxColumn(i, dim); j += 2) {
 				if (this.countOuterEdges(i, j) != b2.countOuterEdges(i, j)) {
 					return false;
 				}
@@ -401,7 +408,7 @@ public class Board {
 				 * no 'outer edges'.
 				 */
 				if ((i != 1 || i != edges.length - 2) && j == 1) {
-					j = Math.max(0, i - (2*dim - 1)) + edges[i].length - 4;
+					j = getMaxColumn(i, dim) - 3;
 				}
 			}
 		}
@@ -416,7 +423,7 @@ public class Board {
 	 * one cell.
 	 * </p>
 	 */
-	public int countOuterEdges(int r, int c) {
+	private int countOuterEdges(int r, int c) {
 		int count = 0;
 		
 		// ensure (r, c) is a centre of some cell

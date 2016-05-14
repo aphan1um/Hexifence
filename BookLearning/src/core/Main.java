@@ -17,15 +17,17 @@ public class Main {
 		Board c = new Board(DIM, myColor);
 		
 		System.out.println("Performing a rotation test:");
-		b.occupyEdge(0, 1, myColor);
+		b.occupyEdge(0, 0, myColor);
 		b.occupyEdge(1, 0, myColor);
-		// System.out.println(b.toBitString() + " " + b.getCurrTurn());
+		b.occupyEdge(3, 0, myColor);
 
+		c.occupyEdge(0, 2, myColor);
+		c.occupyEdge(1, 4, myColor);
 		c.occupyEdge(0, 0, myColor);
-		c.occupyEdge(1, 0, myColor);
-		
-		System.out.println(c.equals(b));
-		
+		System.out.println(c.toBitString() + " " + c.getCurrTurn());
+
+		System.out.println(b.isRotateSymmetric(c));
+
 		/*
 		System.out.println("\nPerforming DFS...");
 		System.out.println("Minimax value of initial state: " + 
