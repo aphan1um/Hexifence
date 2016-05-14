@@ -21,6 +21,8 @@ public class Board {
 	 * cell would be captured).
 	 */
 	private int[][] cells;
+	
+	private int num_open_cells;
 
 	/** Dimension of board. */
 	private int dim;
@@ -70,6 +72,7 @@ public class Board {
 		this.score = 0;
 		this.num_colored_edges = 0;
 		this.curr_turn = initTurn;
+		this.num_open_cells = 3*dim*(dim - 1) + 1;
 	}
 	
 	/** Create a board with only the 2D array's <code>edges</code>
@@ -104,6 +107,7 @@ public class Board {
 		copy.dim = dim;
 		copy.score = score;
 		copy.num_colored_edges = num_colored_edges;
+		copy.num_open_cells = num_open_cells;
 		
 		return copy;
 	}
@@ -200,6 +204,9 @@ public class Board {
 				// if the cell has been captured, change score based if
 				// myself or enemy occupied the last edge last
 				score += (Main.myColor == color) ? 1 : -1;
+				
+				// decrement amount of uncaptured cells
+				num_open_cells--;
 			}
 		}
 	}
@@ -253,6 +260,13 @@ public class Board {
 	/** Get a 2D array of edges representing the board. */
 	public Piece[][] getEdges() {
 		return edges;
+	}
+	
+	/** Retrieve the number of cells that have not been
+	 * captured.
+	 */
+	public int getNumUncaptured() {
+		return num_open_cells;
 	}
 	
 	/** Check if the coordinate (r, c) actually represents the

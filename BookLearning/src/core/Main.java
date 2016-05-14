@@ -14,6 +14,7 @@ public class Main {
 	
 	private static long count = 0;
 	private static long sym_count = 0;
+	private static long certain_lose_count = 0;
 	
 	private static TranspositionTable table = new TranspositionTable(DIM);
 	
@@ -41,6 +42,19 @@ public class Main {
 	public static int minimax_value(SearchTree.Node n) {
 		if (n.getState().isFinished()) {		// terminal state
 			return n.getState().getScore();
+		
+		// if we reach to a state which is going to be a 100% loss,
+		// no matter if we capture the remaining cells
+		} else if (n.getState().getScore() < 0 && 
+				n.getState().getNumUncaptured() < Math.abs(n.getState().getScore())) {
+			certain_lose_count++;
+			
+			if (certain_lose_count % 2000 == 0) {
+				System.out.println("Certain lose count: " + certain_lose_count);
+			}
+			
+			// using constant DIM
+			return -3*DIM*(DIM - 1) - 1;
 		}
 		
 		// detect symmetry
