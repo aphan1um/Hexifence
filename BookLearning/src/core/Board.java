@@ -426,6 +426,20 @@ public class Board {
 		return false;
 	}
 	
+	public Board isRotateSymmetric(TranspositionTable table) {
+		for (int numRotate = 0; numRotate < NUM_EDGES * 2; numRotate++) {
+			Board r = rotateBoard(numRotate % NUM_EDGES,
+					numRotate >= NUM_EDGES);
+			
+			if (table.isStored(r)) {
+				return r;
+			}
+		}
+		
+		
+		return null;
+	}
+	
 	/** Check if this board is "outer symmetric" with b2.
 	 * <p>
 	 * Two boards are considered "outer symmetric" if the number
@@ -563,6 +577,30 @@ public class Board {
 			
 			for (int j = 0; j < edges[i].length; j++) {
 				sb.append((edges[i][j] == Piece.EMPTY) ? 0 : 1);
+			}
+			
+			sb.append(' ');
+		}
+		
+		
+		return sb.toString();
+	}
+	
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		
+		for (int i = 0; i < edges.length; i++) {
+			
+			for (int j = 0; j < edges[i].length; j++) {
+				char c = '-';
+				
+				if (edges[i][j] == Piece.RED) {
+					c = 'R';
+				} else if (edges[i][j] == Piece.BLUE) {
+					c = 'B';
+				}
+				
+				sb.append(c);
 			}
 			
 			sb.append(' ');

@@ -8,9 +8,14 @@ public class Main {
 	/** Dimension of board to be used. */
 	private static final int DIM = 2;
 	/** Color of our agent. */
-	public static final Piece myColor = Piece.RED;
+	public static final Piece myColor = Piece.BLUE;
 	/** Color of player to start the game. */
 	public static final Piece playerStart = Piece.BLUE;
+	
+	private static long count = 0;
+	private static long sym_count = 0;
+	
+	private static TranspositionTable table = new TranspositionTable(DIM);
 	
 	public static void main(String[] args) {
 		Board b = new Board(DIM, myColor);
@@ -23,21 +28,34 @@ public class Main {
 
 		c.occupyEdge(0, 2, myColor);
 		c.occupyEdge(1, 4, myColor);
-		c.occupyEdge(1, 3, myColor);
+		c.occupyEdge(2, 5, myColor);
 		System.out.println(c.toBitString() + " " + c.getCurrTurn());
 
 		System.out.println(b.isRotateSymmetric(c));
 
-		/*
 		System.out.println("\nPerforming DFS...");
 		System.out.println("Minimax value of initial state: " + 
 				minimax_value(new SearchTree.Node(new Board(DIM, playerStart), null)));
-		*/
 	}
 
 	public static int minimax_value(SearchTree.Node n) {
 		if (n.getState().isFinished()) {		// terminal state
 			return n.getState().getScore();
+		}
+		
+		// detect symmetry
+		if (n.getState().getCurrTurn() == myColor) {
+			Board sym = n.getState().isRotateSymmetric(table);
+			
+			if (sym != null) {
+				sym_count++;
+				
+				if (sym_count % 40000 == 0) {
+					System.out.println("Symmetry count: " + sym_count);
+				}
+				
+				return table.getMinimax(sym.getEdges());
+			}
 		}
 		
 		expand_node(n);
@@ -57,7 +75,18 @@ public class Main {
 		
 		n.setMiniMax(value);
 		
+		// we are only interested in finding the minimax value based
+		// on our turn
+		if (n.getState().getCurrTurn() == myColor)
+			table.storeMinimax(n.getState(), value);
+		
 		// n.removeNode();
+		
+		count++;
+		
+		if (count % 20000 == 0) {
+			System.out.println(count);
+		}
 		
 		return value;
 	}

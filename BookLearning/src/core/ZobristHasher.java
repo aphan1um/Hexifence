@@ -42,6 +42,10 @@ public class ZobristHasher {
 				}
 				
 				if (edges[i][j] != Piece.INVALID || edges[i][j] != Piece.DEAD) {
+					if (i % 2 == 1 && j % 2 == 1) {
+						continue;
+					}
+					
 					edgeIndex++;
 				}
 			}
