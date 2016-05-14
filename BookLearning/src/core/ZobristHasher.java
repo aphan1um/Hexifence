@@ -35,19 +35,18 @@ public class ZobristHasher {
 		
 		for (int i = 0; i < edges.length; i++) {
 			for (int j = 0; j < edges[i].length; j++) {
+				// if edges[i][j] is a cell centre (invalid edge)
+				if (i % 2 == 1 && j % 2 == 1) {
+					continue;
+				}
+				
 				if (edges[i][j] == Piece.BLUE) {
 					hashKey ^= elementValueTable[BLUE_ROW][edgeIndex];
 				} else if (edges[i][j] == Piece.RED) {
 					hashKey ^= elementValueTable[RED_ROW][edgeIndex];
 				}
-				
-				if (edges[i][j] != Piece.INVALID || edges[i][j] != Piece.DEAD) {
-					if (i % 2 == 1 && j % 2 == 1) {
-						continue;
-					}
-					
-					edgeIndex++;
-				}
+	
+				edgeIndex++;
 			}
 		}
 		

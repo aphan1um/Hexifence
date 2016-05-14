@@ -8,7 +8,7 @@ public class Main {
 	/** Dimension of board to be used. */
 	private static final int DIM = 2;
 	/** Color of our agent. */
-	public static final Piece myColor = Piece.BLUE;
+	public static final Piece myColor = Piece.RED;
 	/** Color of player to start the game. */
 	public static final Piece playerStart = Piece.BLUE;
 	
@@ -49,7 +49,7 @@ public class Main {
 				n.getState().getNumUncaptured() < Math.abs(n.getState().getScore())) {
 			certain_lose_count++;
 			
-			if (certain_lose_count % 2000 == 0) {
+			if (certain_lose_count % 10000 == 0) {
 				System.out.println("Certain lose count: " + certain_lose_count);
 			}
 			
@@ -58,21 +58,22 @@ public class Main {
 		}
 		
 		// detect symmetry
-		if (n.getState().getCurrTurn() == myColor) {
-			Board sym = n.getState().isRotateSymmetric(table);
-			
-			if (sym != null) {
-				sym_count++;
-				
-				if (sym_count % 40000 == 0) {
-					System.out.println("Symmetry count: " + sym_count);
-				}
-				
-				return table.getMinimax(sym.getEdges());
+		Board sym = n.getState().isRotateSymmetric(table);
+
+		if (sym != null) {
+			sym_count++;
+
+			if (sym_count % 100000 == 0) {
+				System.out.println("Symmetry count: " + sym_count);
 			}
+
+			return table.getMinimax(sym.getEdges());
 		}
 		
+		// expand out children states
 		expand_node(n);
+
+
 		// assume a child will always be made (this is checked from above)
 		// TODO: fix duplicity
 		int value = minimax_value(n.getChildren().get(0));
@@ -98,7 +99,7 @@ public class Main {
 		
 		count++;
 		
-		if (count % 20000 == 0) {
+		if (count % 100000 == 0) {
 			System.out.println(count);
 		}
 		
