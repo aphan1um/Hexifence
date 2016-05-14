@@ -1,5 +1,8 @@
 package core;
 
+import java.util.LinkedList;
+import java.util.Queue;
+
 import aiproj.hexifence.Piece;
 
 public class Main {
@@ -35,21 +38,26 @@ public class Main {
 		System.out.println(b.isRotateSymmetric(c));
 
 		System.out.println("\nPerforming DFS...");
-		System.out.println("Minimax value of initial state: " + 
-				minimax_value(new SearchTree.Node(new Board(DIM, playerStart), null)));
+		System.out.println("Minimax value of initial state: " + minimax_value(new Board(DIM, playerStart)));
 	}
 
-	public static int minimax_value(SearchTree.Node n) {
-		if (n.getState().isFinished()) {		// terminal state
-			return n.getState().getScore();
+	public static int minimax_value(Board state) {
+		Queue<Board> child_states = new LinkedList<Board>();
+		
+		if (++count % 1000000 == 0) {
+			System.out.println("Count: " + count/1000000 + " million");
+		}
+		
+		if (state.isFinished()) {		// terminal state
+			return state.getScore();
 		
 		// if we reach to a state which is going to be a 100% loss,
 		// no matter if we capture the remaining cells
-		} else if (n.getState().getScore() < 0 && 
-				n.getState().getNumUncaptured() < Math.abs(n.getState().getScore())) {
+		} else if (state.getScore() < 0 && 
+				state.getNumUncaptured() < Math.abs(state.getScore())) {
 			certain_lose_count++;
 			
-			if (certain_lose_count % 2000 == 0) {
+			if (certain_lose_count % 50000 == 0) {
 				System.out.println("Certain lose count: " + certain_lose_count);
 			}
 			
@@ -58,13 +66,13 @@ public class Main {
 		}
 		
 		// detect symmetry
-		if (n.getState().getCurrTurn() == myColor) {
-			Board sym = n.getState().isRotateSymmetric(table);
+		if (state.getCurrTurn() == myColor) {
+			Board sym = state.isRotateSymmetric(table);
 			
 			if (sym != null) {
 				sym_count++;
 				
-				if (sym_count % 40000 == 0) {
+				if (sym_count % 500000 == 0) {
 					System.out.println("Symmetry count: " + sym_count);
 				}
 				
@@ -72,53 +80,62 @@ public class Main {
 			}
 		}
 		
-		expand_node(n);
+		expand_node(child_states, state);
+
 		// assume a child will always be made (this is checked from above)
 		// TODO: fix duplicity
-		int value = minimax_value(n.getChildren().get(0));
+		int minimax_value = minimax_value(child_states.poll());
 
-		if (n.getState().getCurrTurn() == myColor) {		// my turn => maximise score
-			for (SearchTree.Node child : n.getChildren()) {
-				value = Math.max(value, minimax_value(child));
+		if (state.getCurrTurn() == myColor) {		// my turn => maximise score
+			while (!child_states.isEmpty()) {
+				minimax_value = Math.max(minimax_value, minimax_value(child_states.poll()));
 			}
 		} else {
-			for (SearchTree.Node child : n.getChildren()) {
-				value = Math.min(value, minimax_value(child));
+			while (!child_states.isEmpty()) {
+				minimax_value = Math.min(minimax_value, minimax_value(child_states.poll()));
 			}
 		}
+
+		int value_store;
 		
-		n.setMiniMax(value);
+		// if the minimax value is worse than our current score
+		// (bad result)
+		if (minimax_value < state.getScore()) {
+			value_store = -Math.abs(state.getScore() - minimax_value);
+		} else {
+			value_store = Math.abs(state.getScore() - minimax_value);
+		}
 		
 		// we are only interested in finding the minimax value based
-		// on our turn
-		if (n.getState().getCurrTurn() == myColor)
-			table.storeMinimax(n.getState(), value);
+		// on our turn (for now..)
+		if (state.getCurrTurn() == myColor) {
+			// note that we are storing 'value_store', not minimax
+			table.storeMinimax(state, value_store);
+			
+			if (table.getSize() % 50000 == 0) {
+				System.out.println("Table size: " + table.getSize());
+			}
+		}
 		
 		// n.removeNode();
 		
-		count++;
-		
-		if (count % 20000 == 0) {
-			System.out.println(count);
-		}
-		
-		return value;
+		return minimax_value;
 	}
 	
-	public static void expand_node(SearchTree.Node n) {
-		if (n.getState().isFinished()) {
+	public static void expand_node(Queue<Board> child_states, Board curr_state) {
+		if (curr_state.isFinished()) {
 			return;
 		}
 		
-		Board child_state = n.getState().deepCopy(true);
+		Board child = curr_state.deepCopy(true);
 
-		for (int r = 0; r < child_state.getEdges().length; r++) {
-			for (int c = 0; c < child_state.getEdges()[r].length; c++) {
-				if (child_state.occupyEdge(r, c + Math.max(0, r - (2 * DIM - 1)), child_state.getCurrTurn())) {
-					n.addChild(child_state);
+		for (int r = 0; r < child.getEdges().length; r++) {
+			for (int c = 0; c < child.getEdges()[r].length; c++) {
+				if (child.occupyEdge(r, c + Math.max(0, r - (2 * DIM - 1)), child.getCurrTurn())) {
+					child_states.add(child);
 				}
 
-				child_state = n.getState().deepCopy(true);
+				child = curr_state.deepCopy(true);
 			}
 		}
 	}
