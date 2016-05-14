@@ -17,7 +17,7 @@ public class Board {
 	private Piece[][] edges;
 	
 	/** Represents a cell, where its value is the number
-	 * of occupied cells (so if cells[a][b] = 6, then this
+	 * of closed cells (so if cells[a][b] = 6, then the
 	 * cell would be captured).
 	 */
 	private int[][] cells;
@@ -136,7 +136,7 @@ public class Board {
 		}
 		
 		// set the color of edge
-		edges[r][c - Math.max(0, r - (2*dim - 1))] = color;
+		setEdge(r, c, color);
 		num_colored_edges++;
 		
 		// now tell cells with this edge that the edge is now 'closed'
@@ -195,7 +195,7 @@ public class Board {
 
 			if (cells[r_cell][c_cell] == NUM_EDGES) {
 				// color centre cell as captured
-				edges[r][c] = color;
+				setEdge(r, c, color);
 				
 				// if the cell has been captured, change score based if
 				// myself or enemy occupied the last edge last
@@ -246,6 +246,10 @@ public class Board {
 		return edges[r][c - Math.max(0, r - (2*dim - 1))];
 	}
 	
+	private void setEdge(int r, int c, Piece value) {
+		edges[r][c - Math.max(0, r - (2*dim - 1))] = value;
+	}
+	
 	/** Get a 2D array of edges representing the board. */
 	public Piece[][] getEdges() {
 		return edges;
@@ -274,7 +278,7 @@ public class Board {
 	 * and rotations is easier when using this 3D coordinate system.
 	 * </p>
 	 */
-	private static int[] getCubeCoord(int r, int c, int dim) {
+	private static int[] to3DCoord(int r, int c, int dim) {
 		int[] ret = new int[3];
 		
 		// get difference between (r,c) and the centre of game board
@@ -291,27 +295,51 @@ public class Board {
 		return ret;
 	}
 	
+	/** Convert a given cube coordinate (xx, yy, zz) back into
+	 * edge coordinates for Hexifence.
+	 */
+	private static int[] to2DCoord(int[] cube_coord, int dim) {
+		// initialize array representing (r, c)
+		int[] ret = new int[2];
+		
+		// convert back to (r, c) coordinates
+		ret[1] = cube_coord[0] + (cube_coord[2] - cube_coord[2]&1)/2;
+		ret[0] = cube_coord[2];
+
+		// adjust point to be in Hexifence coordinates
+		ret[1] = ret[1] + ret[0];
+		
+		ret[0] += + (2*dim - 1);
+		ret[1] += + (2*dim - 1);
+		
+		return ret;
+	}
+	
 	/** Get the distance between a given coordinate (r, c), and
 	 * the centre of the game board.
 	 */
 	public static int getEdgeDist(int r, int c, int dim) {
-		int[] p = getCubeCoord(r, c, dim);
+		int[] p = to3DCoord(r, c, dim);
 		
 		return (Math.abs(p[0]) + Math.abs(p[1]) + Math.abs(p[2]))/2;
 	}
 	
-	/** Rotate a point (r, c) 60 degrees anti-clockwise in a hexagonal
-	 * game board.
+	/** Rotate a point <code>(r, c) (60*numRotate)</code> degrees
+	 * anti-clockwise, and a reflection along a vertical line if
+	 * <code>reflect</code> is <code>true</code>.
 	 * 
+	 * <p>
 	 * Big credit to: http://gamedev.stackexchange.com/a/55493
 	 * for an answer to rotating a hexagonal board.
-	 * 
 	 * Code was edited to adjust to a different edge coordinate
-	 * system Hexifence uses.
+	 * system Hexifence uses, and to include reflection.
+	 * </p>
 	 */
-	public static int[] rotateEdge(int r, int c, int dim, int numRotate) {
+	public static int[] rotateEdge(int r, int c, int dim,
+			int numRotate, boolean reflect) {
+
 		// convert into 3D coordinates (xx, yy, zz)
-		int[] cube_coord = getCubeCoord(r, c, dim);
+		int[] cube_coord = to3DCoord(r, c, dim);
 		int[] cube_rotate = new int[3];
 
 		// rotate 60 degrees anti-clockwise
@@ -320,22 +348,24 @@ public class Board {
 		cube_rotate[1] = sign * cube_coord[(numRotate + 1) % 3];
 		cube_rotate[2] = sign * cube_coord[(numRotate + 2) % 3];
 		
-		// convert back to (r, c) coordinates
-		c = cube_rotate[0] + (cube_rotate[2] - cube_rotate[2]&1)/2;
-		r = cube_rotate[2];
-
-		// adjust point to be in Hexifence coordinates
-		c = c + r;
-
-		return new int[] {r + (2*dim - 1), c + (2*dim - 1)};
+		// if we want to reflect along a vertical line
+		if (reflect) {
+			int temp = cube_rotate[0];
+			
+			cube_rotate[0] = cube_rotate[1];
+			cube_rotate[1] = temp;
+		}
+		
+		return to2DCoord(cube_rotate, dim);
 	}
 	
 	/** Get a rotated board by <code>(60*numRotate)</code>
-	 * degrees anti-clockwise.
+	 * degrees anti-clockwise, and reflection if <code>reflect</code>
+	 * is true.
 	 */
-	public Board rotateBoard(int numRotate) {
-		// if we are just rotating by 0 degrees..
-		if (numRotate % NUM_EDGES == 0) {
+	public Board rotateBoard(int numRotate, boolean reflect) {
+		// if we are just rotating by 0 degrees, without reflection..
+		if (numRotate % NUM_EDGES == 0 && !reflect) {
 			return this;
 		}
 
@@ -351,7 +381,7 @@ public class Board {
 					continue;
 				}
 
-				int[] rotated_edge = rotateEdge(i, j, dim, numRotate);
+				int[] rotated_edge = rotateEdge(i, j, dim, numRotate, reflect);
 				b2.occupyEdge(rotated_edge[0], rotated_edge[1], getEdge(i, j));
 			}
 		}
@@ -364,9 +394,19 @@ public class Board {
 	
 	/** Compare two boards, and see if b2 is rotationally symmetric
 	 * to this board.
+	 * <p>
+	 * We note that there are 12 different symmetries for a hexagon.
+	 * These are achieved through rotations, a single reflection,
+	 * or mix of both.
+	 * </p>
+	 * 
+	 * @see <a href="http://wki.pe/Dihedral_group#Elements">Wiki article</a>
+	 * for more info on how to achieve the symmetries.
+	 * 
 	 * @param b2 The board to compare.
 	 * @return <code>true</code> if b2 can be rotated by a multiple of
-	 * 60 degrees and match the corresponding edges of this board.
+	 * 60 degrees (with or without reflection) and match the corresponding
+	 * edges of this board.
 	 */
 	public boolean isRotateSymmetric(Board b2) {
 		// ensure the dimension, score, and the number of occupied
@@ -376,9 +416,9 @@ public class Board {
 			return false;
 		}
 
-		for (int numRotate = 0; numRotate < NUM_EDGES; numRotate++) {
-			System.out.println(numRotate + "   " + b2.rotateBoard(numRotate).toBitString());
-			if (this.equals(b2.rotateBoard(numRotate))) {
+		for (int numRotate = 0; numRotate < NUM_EDGES * 2; numRotate++) {
+			if (this.equals(b2.rotateBoard(numRotate % NUM_EDGES,
+					numRotate >= NUM_EDGES))) {
 				return true;
 			}
 		}
@@ -510,6 +550,8 @@ public class Board {
 		
 		return true;
 	}
+	
+	*/
 	
 	/** Return a bit string view of the board, where <code>0</code>
 	 * represents an unoccupied cell/edge, and <code>1</code> otherwise.

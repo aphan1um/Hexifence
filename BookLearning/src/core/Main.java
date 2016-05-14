@@ -23,7 +23,7 @@ public class Main {
 
 		c.occupyEdge(0, 2, myColor);
 		c.occupyEdge(1, 4, myColor);
-		c.occupyEdge(0, 0, myColor);
+		c.occupyEdge(1, 3, myColor);
 		System.out.println(c.toBitString() + " " + c.getCurrTurn());
 
 		System.out.println(b.isRotateSymmetric(c));
@@ -57,6 +57,7 @@ public class Main {
 		
 		n.setMiniMax(value);
 		
+		// n.removeNode();
 		
 		return value;
 	}
