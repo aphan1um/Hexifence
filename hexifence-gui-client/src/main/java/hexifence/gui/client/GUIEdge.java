@@ -39,7 +39,7 @@ class GUIEdge extends Edge {
 	}
 	
 	public int useCell(Color colour, int id_capture) {
-		int ret = super.useCell(id_capture);
+		int ret = super.useCell(id_capture, colour);
 		
 		selectable = false;
 		this.colour = colour;

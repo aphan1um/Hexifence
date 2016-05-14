@@ -106,6 +106,12 @@ public class FrameBoard extends JFrame {
 		btn_settings.setAlignmentX(Component.CENTER_ALIGNMENT);
 		panel_buttons.add(btn_settings);
 		
+		// command button (BUGGY!)
+		JButton btn_command = new JButton("Command");
+		btn_command.setSize(new Dimension(20, 20));
+		btn_command.setAlignmentX(Component.CENTER_ALIGNMENT);
+		panel_buttons.add(btn_command);
+		
 		bottom_panel.add(panel_buttons);
 		
 		// button to start game event
@@ -118,6 +124,12 @@ public class FrameBoard extends JFrame {
 		btn_settings.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				new GameSettings(FrameBoard.this);
+			}
+		});
+		
+		btn_command.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				new CommandBox(FrameBoard.this);
 			}
 		});
 	}

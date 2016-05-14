@@ -1,5 +1,6 @@
 package hexifence.gui.core;
 
+import java.awt.Color;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,7 +49,7 @@ public class Edge {
 	 * @return Returns the number of cells captured by player
 	 * (0 if none).
 	 */
-	public int useCell(int id_capture) {
+	public int useCell(int id_capture, Color color) {
 		int cells_captured = 0;
 		
 		for (Cell c : adj_cells) {
@@ -58,6 +59,7 @@ public class Edge {
 				cells_captured++;
 				
 				c.setIDCapturer(id_capture);
+				c.cap_color = color;
 			}
 		}
 		

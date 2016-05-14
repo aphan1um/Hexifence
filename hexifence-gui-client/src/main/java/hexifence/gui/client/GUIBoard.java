@@ -85,9 +85,16 @@ class GUIBoard extends Board<GUIEdge> {
     		for (Map.Entry<Cell, Point2D> kv : cell_cen.entrySet()) {
     			if (kv.getKey().getNumOpen() == 0) {
     				g.setFont(f);
-    				g.setColor(FrameBoard.USER_COLOURS[frame.players_c.get(kv.getKey().getIDOccupied())]);
+    				g.setColor(kv.getKey().cap_color);
+
+    				String text_render = "U";
     				
-    				String text_render = FrameBoard.USER_COLOURS_STR[frame.players_c.get(kv.getKey().getIDOccupied())];
+    				if (kv.getKey().cap_color == Color.RED) {
+    					text_render = "R";
+    				} else if (kv.getKey().cap_color == Color.BLUE) {
+    					text_render = "B";
+    				}
+    				
     				int x_draw = (int)(kv.getValue().getX() - fm.stringWidth(text_render)/2.0);
     				int y_draw = (int)(kv.getValue().getY() - fm.getHeight()/2.0) + fm.getAscent();
     				

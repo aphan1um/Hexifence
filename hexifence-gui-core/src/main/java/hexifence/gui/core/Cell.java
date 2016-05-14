@@ -1,4 +1,5 @@
 package hexifence.gui.core;
+import java.awt.Color;
 import java.awt.Point;
 
 /** Represents a cell in the game.
@@ -13,6 +14,7 @@ public class Cell {
 	/** Centre point of a cell. */
 	private Point centre;
 	private int id_occupied;
+	public Color cap_color;
 	
 	/** Create a new instance of a cell, with 'centre' being the
 	 * centre of the cell.
