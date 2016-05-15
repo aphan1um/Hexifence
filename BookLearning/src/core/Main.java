@@ -1,6 +1,8 @@
 package core;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 
 import aiproj.hexifence.Piece;
@@ -11,130 +13,141 @@ public class Main {
 	/** Dimension of board to be used. */
 	private static final int DIM = 2;
 	/** Color of our agent. */
-	public static final Piece myColor = Piece.BLUE;
+	public static final Piece myColor = Piece.RED;
 	/** Color of player to start the game. */
 	public static final Piece playerStart = Piece.BLUE;
-	
-	private static long count = 0;
-	private static long sym_count = 0;
-	private static long certain_lose_count = 0;
 	
 	private static TranspositionTable table = new TranspositionTable(DIM);
 	
 	public static void main(String[] args) {
-		Board b = new Board(DIM, myColor);
-		Board c = new Board(DIM, myColor);
-		
-		System.out.println("Performing a rotation test:");
-		b.occupyEdge(0, 0, myColor);
-		b.occupyEdge(1, 0, myColor);
-		b.occupyEdge(3, 0, myColor);
-
-		c.occupyEdge(0, 2, myColor);
-		c.occupyEdge(1, 4, myColor);
-		c.occupyEdge(2, 5, myColor);
-		System.out.println(c.toBitString() + " " + c.getCurrTurn());
-
-		System.out.println(b.isRotateSymmetric(c));
-
 		System.out.println("\nPerforming DFS...");
 		System.out.println("Minimax value of initial state: " + minimax_value(new Board(DIM, playerStart)));
 	}
 
 	public static int minimax_value(Board state) {
 		Queue<Board> child_states = new LinkedList<Board>();
-		
-		if (++count % 1000000 == 0) {
-			System.out.println("Count: " + count/1000000 + " million");
-		}
-		
+		Queue<Integer> child_score_ch = new LinkedList<Integer>();
+
 		if (state.isFinished()) {		// terminal state
-			return state.getScore();
-		
-		// if we reach to a state which is going to be a 100% loss,
-		// no matter if we capture the remaining cells
-		} else if (state.getScore() < 0 && 
-				state.getNumUncaptured() < Math.abs(state.getScore())) {
-			certain_lose_count++;
-			
-			if (certain_lose_count % 50000 == 0) {
-				System.out.println("Certain lose count: " + certain_lose_count);
-			}
-			
-			// using constant DIM
-			return -3*DIM*(DIM - 1) - 1;
+			// System.out.println("TERMINAL: " + state.toBitString() + "\t\t" + state.getCurrTurn() + "\t" + state.getScore());
+			return 0;
 		}
 		
+		// System.out.println("STATE START: " + state.toString() + "\t\t" + state.getCurrTurn());
+
 		// detect symmetry
-		if (state.getCurrTurn() == myColor) {
-			Board sym = state.isRotateSymmetric(table);
+		Board sym = state.isRotateSymmetric(table);
 			
-			if (sym != null) {
-				sym_count++;
-				
-				if (sym_count % 500000 == 0) {
-					System.out.println("Symmetry count: " + sym_count);
-				}
-				
-				return table.getMinimax(sym.getEdges());
-			}
+		if (sym != null) {
+			/*
+			System.out.println("SYMMETRY: " + state.toString() + "\t " + table.getFullEntry(sym).rep +
+					"\t" + (state.toString().equals(sym.toString())) + "\t\t" + state.getCurrTurn() 
+					+ "\t HASH = " + table.getHash(sym) + "\t" + state.getScore() + "\t" + 
+					table.getEntry(sym));
+			*/
+			
+			
+			return table.getEntry(sym);
 		}
 		
-		expand_node(child_states, state);
+		// get child states
+		expand_node(child_states, child_score_ch, state);
 
-		// assume a child will always be made (this is checked from above)
-		// TODO: fix duplicity
+		// go through each child of this state
 		int minimax_value = minimax_value(child_states.poll());
+		int ch_score = child_score_ch.poll();
+		// System.out.println("GOT FIRST MINIMAX CHILD");
 
+		// search through each child state with minimax
 		if (state.getCurrTurn() == myColor) {		// my turn => maximise score
 			while (!child_states.isEmpty()) {
-				minimax_value = Math.max(minimax_value, minimax_value(child_states.poll()));
+				int new_value = minimax_value(child_states.poll());
+				int new_ch_score = child_score_ch.poll();
+				
+				if (new_value + new_ch_score > minimax_value) {
+					minimax_value = new_value;
+					ch_score = new_ch_score;
+				}
 			}
-		} else {
+		} else {									// enemy's turn => minimise score
 			while (!child_states.isEmpty()) {
-				minimax_value = Math.min(minimax_value, minimax_value(child_states.poll()));
+				int new_value = minimax_value(child_states.poll());
+				int new_ch_score = child_score_ch.poll();
+				
+				if (new_value + new_ch_score < minimax_value) {
+					minimax_value = new_value;
+					ch_score = new_ch_score;
+				}
 			}
 		}
 
-		int value_store;
-		
-		// if the minimax value is worse than our current score
-		// (bad result)
-		if (minimax_value < state.getScore()) {
-			value_store = -Math.abs(state.getScore() - minimax_value);
-		} else {
-			value_store = Math.abs(state.getScore() - minimax_value);
-		}
-		
-		// we are only interested in finding the minimax value based
-		// on our turn (for now..)
-		if (state.getCurrTurn() == myColor) {
-			// note that we are storing 'value_store', not minimax
-			table.storeMinimax(state, value_store);
-			
-			if (table.getSize() % 50000 == 0) {
-				System.out.println("Table size: " + table.getSize());
-			}
-		}
-		
-		// n.removeNode();
-		
+		/*
+		 * If current turn is self:
+		 * 		minimax_value has the maximum optimal number of cells that
+		 * 		can be captured, STARTING from the child state with this
+		 * 		minimax value.
+		 * 
+		 * 		ch_score considers if a cell was captured (by self) when
+		 * 		ENTERING this child state.
+		 * 
+		 *  	Thus the total number of cells captured FROM this state
+		 *  	is minimax_value + ch_score.
+		 *  
+		 *  	If the child state was a terminal state (ie. this state
+		 *  	has only one open edge left), then the child state returns
+		 *  	a minimax value of 0, but with ch_score of 1 or 2.
+		 *
+		 */
+		minimax_value += ch_score;
+
+		// System.out.println("\nSTATE END: " + state.toString() + "\t\t" + state.getScore() + "\t\t" + minimax_value + "\t\t" + state.getCurrTurn());
+		table.storeEntry(state, minimax_value);
+
 		return minimax_value;
 	}
 	
-	public static void expand_node(Queue<Board> child_states, Board curr_state) {
+	public static void expand_node(Queue<Board> child_states, Queue<Integer> child_score_ch, Board curr_state) {
+		// terminal state => no child nodes to expand
 		if (curr_state.isFinished()) {
 			return;
 		}
 		
+		//System.out.println("max number of child nodes : " + curr_state.num_edges_left);
+		
 		Board child = curr_state.deepCopy(true);
-
+		List<Board> sym_childs = new ArrayList<Board>();
+		
+		// capture previous data before making a child move
+		int num_cells_open = curr_state.getNumUncaptured();
+		int prev_score = curr_state.getScore();
+		
 		for (int r = 0; r < child.getEdges().length; r++) {
 			for (int c = 0; c < child.getEdges()[r].length; c++) {
-				if (child.occupyEdge(r, c + Math.max(0, r - (2 * DIM - 1)), child.getCurrTurn())) {
-					child_states.add(child);
+				if (child.occupyEdge(r, c + Math.max(0, r - (2 * DIM - 1)))) {
+					// if no cells were captured, then give turn to the other player
+					if (num_cells_open == child.getNumUncaptured()) {
+						child.setCurrTurn(child.getCurrTurn() == 
+								Piece.RED ? Piece.BLUE : Piece.RED);
+					}
+
+					// if the child created is not symmetric to a previous child
+					// that was made before
+					if (!sym_childs.contains(child)) {
+						sym_childs.addAll(child.getSymmetricBoards());
+						
+						// TODO: present checks
+						child_score_ch.add(child.getScore() - prev_score);
+						
+						/*
+						System.out.println("CHILD MADE: " + child.toString() + "\tMade by: " + curr_state.toString()
+									+ "ch score = " + (child.getScore() - prev_score));
+						*/
+						
+						child_states.add(child);
+					}
 				}
 
+				// create another child
 				child = curr_state.deepCopy(true);
 			}
 		}

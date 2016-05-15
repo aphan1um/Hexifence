@@ -7,24 +7,24 @@ import aiproj.hexifence.Piece;
 public class ZobristHasher {
 	private static final int SEED = 12345; // We can randomise the seed if needed.
 	
-	private int[] elementValueTable;
+	private long[] elementValueTable;
 	
 	public ZobristHasher(int dimension) {
 		// Total number of edges for a game of dimension N.
 		int totalEdges = 3*dimension * (3*dimension - 1);
 		
-		elementValueTable = new int[totalEdges]; // Indexed left-to-right and top-to-bottom.
+		elementValueTable = new long[totalEdges]; // Indexed left-to-right and top-to-bottom.
 		
 		Random rand = new Random(SEED);
 		
 		for (int i = 0; i < totalEdges; i++) {
 			// Longer bit-strings => less hash collisions.
-			elementValueTable[i] = rand.nextInt(Integer.MAX_VALUE);
+			elementValueTable[i] = rand.nextLong();
 		}
 	}
 	
-	public int generateHashKey(Piece[][] edges) {
-		int hashKey = 0;
+	public long generateHashKey(Piece[][] edges) {
+		long hashKey = 0;
 		int edgeIndex = 0;
 		
 		for (int i = 0; i < edges.length; i++) {

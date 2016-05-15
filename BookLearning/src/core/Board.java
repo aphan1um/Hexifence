@@ -1,6 +1,8 @@
 package core;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import aiproj.hexifence.Piece;
 
@@ -16,24 +18,19 @@ public class Board {
 	 * (refer to constructor for more details). */
 	private Piece[][] edges;
 	
-	/** Represents a cell, where its value is the number
-	 * of closed cells (so if cells[a][b] = 6, then the
-	 * cell would be captured).
-	 */
-	private int[][] cells;
+	/** Number of uncaptured cells left. */
+	private int num_uncaptured;
+	/** Number of cells captured by self. */
+	private int score;
 	
-	private int num_open_cells;
-
 	/** Dimension of board. */
 	private int dim;
-	/** Difference between number of cells captured by self & enemy. */
-	private int score;
-	/** Number of colored edges on the board. */
-	public int num_colored_edges;
+	/** Number of valid open edges left on the board. */
+	public int num_edges_left;
 	/** The current turn for this board state. */
 	private Piece curr_turn;
 
-	
+
 	/** Create an empty Hexifence board (ie. an initial state).
 	 * @param dim Dimension of board.
 	 */
@@ -43,7 +40,6 @@ public class Board {
 		
 		// initialize jagged array
 		edges = new Piece[4*dim - 1][];
-		cells = new int[2*dim - 1][];
 		
 		// initialise the 2D edge array
 		for (int r = 0; r < 4*dim - 1; r++) {
@@ -61,27 +57,20 @@ public class Board {
 			edges[r] = new Piece[2*dim + r - 2*Math.max(0, r - (2*dim - 1))];
 			Arrays.fill(edges[r], Piece.EMPTY);
 		}
-		
-		// now initialise the 2D cell array
-		// Note: the number of rows with a 'cell centre' is: 2*dim - 1
-		for (int j = 0; j < 2*dim - 1; j++) {
-			cells[j] = new int[dim + j - 2*Math.max(0, j - (dim - 1))];
-		}
-		
+
 		this.dim = dim;
 		this.score = 0;
-		this.num_colored_edges = 0;
+		this.num_edges_left = 3*dim*(3*dim - 1);
+		this.num_uncaptured = 3*dim*(dim - 1) + 1;
 		this.curr_turn = initTurn;
-		this.num_open_cells = 3*dim*(dim - 1) + 1;
 	}
 	
 	/** Create a board with only the 2D array's <code>edges</code>
-	 * and <code>cells</code> partly initialized. 
+	 * partly initialized. 
 	 */
 	private Board(int dim) {
 		// prepare the jagged arrays
 		edges = new Piece[4*dim - 1][];
-		cells = new int[2*dim - 1][];
 	}
 	
 	/** Create a deep copy of the board.
@@ -89,25 +78,26 @@ public class Board {
 	 * @param alternate If the current turn of the copied board
 	 * should switch.
 	 */
-	public Board deepCopy(boolean alternate) {
+	public Board deepCopy(boolean copyArrays) {
 		Board copy = new Board(dim);
 		
-		for (int i = 0; i < copy.edges.length; i++) {
-			copy.edges[i] = Arrays.copyOf(edges[i], edges[i].length);
+		if (copyArrays) {
+			for (int i = 0; i < copy.edges.length; i++) {
+				copy.edges[i] = Arrays.copyOf(edges[i], edges[i].length);
+			}
+		} else {
+			// initialise the 2D edge array
+			for (int r = 0; r < 4*dim - 1; r++) {
+				copy.edges[r] = new Piece[2*dim + r - 2*Math.max(0, r - (2*dim - 1))];
+				Arrays.fill(copy.edges[r], Piece.EMPTY);
+			}
 		}
 		
-		for (int j = 0; j < copy.cells.length; j++) {
-			copy.cells[j] = Arrays.copyOf(cells[j], cells[j].length);
-		}
-		
-		if (alternate) {
-			copy.curr_turn = (curr_turn == Piece.BLUE) ? Piece.RED : Piece.BLUE;
-		}
-		
+		copy.curr_turn = curr_turn;
 		copy.dim = dim;
 		copy.score = score;
-		copy.num_colored_edges = num_colored_edges;
-		copy.num_open_cells = num_open_cells;
+		copy.num_edges_left = num_edges_left;
+		copy.num_uncaptured = num_uncaptured;
 		
 		return copy;
 	}
@@ -123,7 +113,7 @@ public class Board {
 	 * is not a valid edge, or has already been occupied.
 	 * </p>
 	 */
-	public boolean occupyEdge(int r, int c, Piece color) {
+	private boolean occupyEdge(int r, int c, Piece color) {
 		// ensure the color of player is only BLUE or RED
 		assert(color == Piece.BLUE || color == Piece.RED);
 
@@ -141,7 +131,7 @@ public class Board {
 		
 		// set the color of edge
 		setEdge(r, c, color);
-		num_colored_edges++;
+		this.num_edges_left--;
 		
 		// now tell cells with this edge that the edge is now 'closed'
 		if (r % 2 == 0) { 	// r even => row does not contain cell centres
@@ -178,6 +168,10 @@ public class Board {
 		return true;
 	}
 	
+	public boolean occupyEdge(int r, int c) {
+		return occupyEdge(r, c, curr_turn);
+	}
+	
 	/** Indicate to the cell that one of its edges has been
 	 * occupied/closed.
 	 * 
@@ -189,25 +183,27 @@ public class Board {
 		if (isOutOfRange(r, c)) {
 			return;
 		}
-
-		// convert (r, c) into "cell numbering" coordinates
-		int r_cell = (r - 1)/2;
-		int c_cell = (c - Math.max(0, r - (2*dim - 1)) - 1)/2;
-
-		if (cells[r_cell][c_cell] != NUM_EDGES) {
-			cells[r_cell][c_cell]++;
-
-			if (cells[r_cell][c_cell] == NUM_EDGES) {
-				// color centre cell as captured
-				setEdge(r, c, color);
-				
-				// if the cell has been captured, change score based if
-				// myself or enemy occupied the last edge last
-				score += (Main.myColor == color) ? 1 : -1;
-				
-				// decrement amount of uncaptured cells
-				num_open_cells--;
+		
+		int num_closed = 0;
+		
+		// count number of edges around cell which aren't open
+		for (int[] diff : EDGE_DIFF) {
+			if (getEdge(r + diff[0], c + diff[1]) != Piece.EMPTY) {
+				num_closed++;
 			}
+		}
+
+		// all of cell's edges occupied  ==>  cell captured
+		if (num_closed == NUM_EDGES) {
+			// color centre cell as captured
+			setEdge(r, c, color);
+
+			if (color == Main.myColor) {
+				score++;
+			}
+
+			// decrement amount of uncaptured cells
+			num_uncaptured--;
 		}
 	}
 	
@@ -215,9 +211,7 @@ public class Board {
 	 * That is, the board has reached a 'terminal state'.
 	 */
 	public boolean isFinished() {
-		// Note: the number of 'valid' edges on the board is
-		// 3d(3d - 1) where d = dim
-		return num_colored_edges == 3*dim*(3*dim - 1);
+		return num_edges_left == 0;
 	}
 	
 	/** Get the maximum column number 'K', given a row
@@ -228,15 +222,25 @@ public class Board {
 		return 2*dim + Math.min(r, 2*dim - 1) - 1;
 	}
 	
-	/** Get score difference between self and enemy.
+	/** Get number of cells captured by self.
 	 */
 	public int getScore() {
 		return score;
 	}
 	
+	/** TODO: Testing function
+	 */
+	public void setScore(int value) {
+		this.score = value;
+	}
+	
 	/** Get the current turn for this board. */
 	public Piece getCurrTurn() {
 		return curr_turn;
+	}
+	
+	public void setCurrTurn(Piece value) {
+		curr_turn = value;
 	}
 	
 	/** Get the status of an edge (empty, or captured)
@@ -266,7 +270,7 @@ public class Board {
 	 * captured.
 	 */
 	public int getNumUncaptured() {
-		return num_open_cells;
+		return num_uncaptured;
 	}
 	
 	/** Check if the coordinate (r, c) actually represents the
@@ -358,10 +362,10 @@ public class Board {
 
 		// rotate 60 degrees anti-clockwise
 		int sign = (numRotate % 2 == 0) ? 1 : -1;
-		cube_rotate[0] = sign * cube_coord[numRotate % 3];
-		cube_rotate[1] = sign * cube_coord[(numRotate + 1) % 3];
-		cube_rotate[2] = sign * cube_coord[(numRotate + 2) % 3];
-		
+		for (int i = 0; i < 3; i++) {
+			cube_rotate[i] = sign * cube_coord[(numRotate + i) % 3];
+		}
+
 		// if we want to reflect along a vertical line
 		if (reflect) {
 			int temp = cube_rotate[0];
@@ -380,15 +384,15 @@ public class Board {
 	public Board rotateBoard(int numRotate, boolean reflect) {
 		// if we are just rotating by 0 degrees, without reflection..
 		if (numRotate % NUM_EDGES == 0 && !reflect) {
-			return this;
+			return this.deepCopy(true);
 		}
 
-		Board b2 = new Board(dim, curr_turn);
+		Board b2 = this.deepCopy(false);
 		
 		for (int i = 0; i < edges.length; i++) {
 			for (int j = Math.max(0, i - (2*dim - 1));
 					j <= getMaxColumn(i, dim); j++) {
-				
+
 				// only choose edges which are not empty (since 'b2'
 				// initially starts with all pieces empty)
 				if (getEdge(i, j) == Piece.EMPTY) {
@@ -396,18 +400,27 @@ public class Board {
 				}
 
 				int[] rotated_edge = rotateEdge(i, j, dim, numRotate, reflect);
-				b2.occupyEdge(rotated_edge[0], rotated_edge[1], getEdge(i, j));
+				b2.setEdge(rotated_edge[0], rotated_edge[1], getEdge(i, j));
 			}
 		}
-		
-		// TODO: rotate cell numbers..
-		b2.cells = this.cells;
 
 		return b2;
 	}
 	
-	/** Compare two boards, and see if b2 is rotationally symmetric
-	 * to this board.
+	public Board isRotateSymmetric(TranspositionTable table) {
+		List<Board> sym_boards = getSymmetricBoards();
+		
+		for (Board r : sym_boards) {
+			if (table.isStored(r)) {
+				return r;
+			}
+		}
+
+		return null;
+	}
+	
+	/** Get a list of boards which are geometrically symmetric to
+	 * this board state (including the original board state).
 	 * <p>
 	 * We note that there are 12 different symmetries for a hexagon.
 	 * These are achieved through rotations, a single reflection,
@@ -416,42 +429,20 @@ public class Board {
 	 * 
 	 * @see <a href="http://wki.pe/Dihedral_group#Elements">Wiki article</a>
 	 * for more info on how to achieve the symmetries.
-	 * 
-	 * @param b2 The board to compare.
-	 * @return <code>true</code> if b2 can be rotated by a multiple of
-	 * 60 degrees (with or without reflection) and match the corresponding
-	 * edges of this board.
 	 */
-	public boolean isRotateSymmetric(Board b2) {
-		// ensure the dimension, score, and the number of occupied
-		// edges are the same
-		if (b2.dim != this.dim || b2.score != this.score ||
-				b2.num_colored_edges != this.num_colored_edges) {
-			return false;
-		}
-
-		for (int numRotate = 0; numRotate < NUM_EDGES * 2; numRotate++) {
-			if (this.equals(b2.rotateBoard(numRotate % NUM_EDGES,
-					numRotate >= NUM_EDGES))) {
-				return true;
-			}
-		}
+	public List<Board> getSymmetricBoards() {
+		List<Board> sym_boards = new ArrayList<Board>(NUM_EDGES * 2);
 		
-		return false;
-	}
-	
-	public Board isRotateSymmetric(TranspositionTable table) {
 		for (int numRotate = 0; numRotate < NUM_EDGES * 2; numRotate++) {
-			Board r = rotateBoard(numRotate % NUM_EDGES,
+			Board r_board = rotateBoard(numRotate % NUM_EDGES,
 					numRotate >= NUM_EDGES);
 			
-			if (table.isStored(r)) {
-				return r;
+			if (!sym_boards.contains(r_board)) {
+				sym_boards.add(r_board);
 			}
 		}
 		
-		
-		return null;
+		return sym_boards;
 	}
 	
 	/** Check if this board is "outer symmetric" with b2.
@@ -520,14 +511,7 @@ public class Board {
 	 * An edge is an "interior edge" if it is a side of two cells.
 	 * </p>
 	 */
-	private boolean isInteriorEqual(Board b2) {
-		// ensure the dimension, score, and the number of occupied
-		// edges are the same
-		if (b2.dim != this.dim || b2.score != this.score ||
-				b2.num_colored_edges != this.num_colored_edges) {
-			return false;
-		}
-		
+	private boolean isInteriorEqual(Board b2) {		
 		// consider only interior edges, excluding 'outer' ones
 		for (int i = 1; i < b2.edges.length - 1; i++) {
 			for (int j = 1; j < b2.edges[i].length - 1; j++) {
@@ -542,45 +526,26 @@ public class Board {
 	}
 	
 	public boolean equals(Object obj) {
-		if (obj instanceof Board && isInteriorEqual((Board)obj) && 
-				isOuterSymmetric((Board)obj) &&
-				((Board)obj).getCurrTurn() == this.getCurrTurn()) {
-			return true;
-		}
-		
-		return false;
-	}
-	
-	/* TODO: OLD EQUAL OVERRIDE (kept in case of future use)
-	
-	public boolean equals(Object obj) {
 		if (obj instanceof Board) {
 			Board b2 = (Board)obj;
 			
 			// ensure the dimension, score, and the number of occupied
 			// edges are the same
 			if (b2.dim != this.dim || b2.score != this.score ||
-					b2.num_colored_edges != this.num_colored_edges) {
+					b2.num_edges_left != this.num_edges_left) {
+				
 				return false;
 			}
-			
-			// check each corresponding edge between this board and obj2
-			// are the same
-			for (int i = 0; i < b2.edges.length; i++) {
-				for (int j = 0; j < b2.edges[i].length; j++) {
-					// if the two corresponding edges are not the same
-					if (this.edges[i][j] != b2.edges[i][j]) {
-						return false;
-					}
-				}
+
+			if (isInteriorEqual(b2) && isOuterSymmetric(b2) &&
+					b2.getCurrTurn() == this.getCurrTurn()) {
+				return true;
 			}
 		}
-		
-		return true;
+
+		return false;
 	}
-	
-	*/
-	
+
 	/** Return a bit string view of the board, where <code>0</code>
 	 * represents an unoccupied cell/edge, and <code>1</code> otherwise.
 	 */
