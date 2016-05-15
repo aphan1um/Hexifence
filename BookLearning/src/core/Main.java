@@ -19,15 +19,21 @@ public class Main {
 	
 	private static TranspositionTable table = new TranspositionTable(DIM);
 	
+	private static long num_explored = 0;
+
 	public static void main(String[] args) {
 		System.out.println("\nPerforming DFS...");
 		System.out.println("Minimax value of initial state: " + minimax_value(new Board(DIM, playerStart)));
+		System.out.println("Number entries made: " + table.getSize());
+		System.out.println("Number of states explored: " + num_explored);
 	}
 
 	public static int minimax_value(Board state) {
 		Queue<Board> child_states = new LinkedList<Board>();
 		Queue<Integer> child_score_ch = new LinkedList<Integer>();
 
+		num_explored++;
+		
 		if (state.isFinished()) {		// terminal state
 			// System.out.println("TERMINAL: " + state.toBitString() + "\t\t" + state.getCurrTurn() + "\t" + state.getScore());
 			return 0;
@@ -102,6 +108,10 @@ public class Main {
 
 		// System.out.println("\nSTATE END: " + state.toString() + "\t\t" + state.getScore() + "\t\t" + minimax_value + "\t\t" + state.getCurrTurn());
 		table.storeEntry(state, minimax_value);
+		
+		if (table.getSize() % 10000 == 0) {
+			System.out.println(table.getSize() + "\t\t" + num_explored + "\t\t" + (double)num_explored/table.getSize());
+		}
 
 		return minimax_value;
 	}
