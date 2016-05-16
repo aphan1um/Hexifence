@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
+import aiproj.hexifence.Move;
 import aiproj.hexifence.Piece;
 
 public class Board {
@@ -24,7 +25,9 @@ public class Board {
 	/** Number of uncaptured cells left. */
 	private int num_uncaptured;
 	/** Number of cells captured by self. */
-	private int score;
+	private int my_score;
+	/** Number of cells captured by enemy. */
+	private int enemy_score;
 	
 	/** Dimension of board. */
 	private int dim;
@@ -62,7 +65,8 @@ public class Board {
 		}
 
 		this.dim = dim;
-		this.score = 0;
+		this.my_score = 0;
+		this.enemy_score = 0;
 		this.num_edges_left = 3*dim*(3*dim - 1);
 		this.num_uncaptured = 3*dim*(dim - 1) + 1;
 		this.curr_turn = initTurn;
@@ -98,7 +102,8 @@ public class Board {
 		
 		copy.curr_turn = curr_turn;
 		copy.dim = dim;
-		copy.score = score;
+		copy.my_score = my_score;
+		copy.enemy_score = enemy_score;
 		copy.num_edges_left = num_edges_left;
 		copy.num_uncaptured = num_uncaptured;
 		
@@ -112,8 +117,10 @@ public class Board {
 	 * @return <code>true</code> if the board successfully
 	 * registers this move.
 	 * <p>
-	 * <code>false</code> if the specified coordinates <code>(r, c)</code>
-	 * is not a valid edge, or has already been occupied.
+	 * <code>false</code> if the specified coordinates
+	 * <code>(r, c)</code> is not a valid edge, or has
+	 * already been occupied. In this case, occupyEdge does
+	 * nothing.
 	 * </p>
 	 */
 	private boolean occupyEdge(int r, int c, int color) {
@@ -171,8 +178,8 @@ public class Board {
 		return true;
 	}
 	
-	public boolean occupyEdge(int r, int c) {
-		return occupyEdge(r, c, curr_turn);
+	public boolean occupyEdge(Move move) {
+		return occupyEdge(move.Row, move.Col, move.P);
 	}
 	
 	/** Indicate to the cell that one of its edges has been
@@ -202,7 +209,9 @@ public class Board {
 			setEdge(r, c, color);
 
 			if (color == Main.myColor) {
-				score++;
+				my_score++;
+			} else {
+				enemy_score++;
 			}
 
 			// decrement amount of uncaptured cells
@@ -227,14 +236,14 @@ public class Board {
 	
 	/** Get number of cells captured by self.
 	 */
-	public int getScore() {
-		return score;
+	public int getMyScore() {
+		return my_score;
 	}
 	
-	/** TODO: Testing function
+	/** Get number of cells captured by opponent.
 	 */
-	public void setScore(int value) {
-		this.score = value;
+	public int getEnemyScore() {
+		return enemy_score;
 	}
 	
 	/** Get the current turn for this board. */
@@ -242,8 +251,11 @@ public class Board {
 		return curr_turn;
 	}
 	
-	public void setCurrTurn(int value) {
-		curr_turn = value;
+	/** Switch the turn to the next player.
+	 */
+	public void switchTurns() {
+		curr_turn = (curr_turn == Piece.RED) ?
+				Piece.BLUE : Piece.RED;
 	}
 	
 	/** Get the status of an edge (empty, or captured)
@@ -613,7 +625,7 @@ public class Board {
 			
 			// ensure the dimension, score, and the number of occupied
 			// edges are the same
-			if (b2.dim != this.dim || b2.score != this.score ||
+			if (b2.dim != this.dim || b2.my_score != this.my_score ||
 					b2.num_edges_left != this.num_edges_left) {
 				
 				return false;

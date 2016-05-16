@@ -4,12 +4,12 @@ package aiproj.hexifence;
  *      Define possible hexifence move
  *      
  *   @author lrashidi
- *   
+ *   Edited by aphan1 (made P a int, not a Piece)
  */
  
 public class Move{
 	
-	public Piece P;
+	public int P;
 	public int Row;
 	public int Col;	
 		
