@@ -19,7 +19,7 @@ public class Board {
 	
 	/** Represents the edges on the board
 	 * (refer to constructor for more details). */
-	private Piece[][] edges;
+	private int[][] edges;
 	
 	/** Number of uncaptured cells left. */
 	private int num_uncaptured;
@@ -31,24 +31,24 @@ public class Board {
 	/** Number of valid open edges left on the board. */
 	public int num_edges_left;
 	/** The current turn for this board state. */
-	private Piece curr_turn;
+	private int curr_turn;
 
 
 	/** Create an empty Hexifence board (ie. an initial state).
 	 * @param dim Dimension of board.
 	 */
-	public Board(int dim, Piece initTurn) {
+	public Board(int dim, int initTurn) {
 		// ensure Piece is a player color
 		assert(initTurn == Piece.BLUE || initTurn == Piece.RED);
 		
 		// initialize jagged array
-		edges = new Piece[4*dim - 1][];
+		edges = new int[4*dim - 1][];
 		
 		// initialise the 2D edge array
 		for (int r = 0; r < 4*dim - 1; r++) {
 			
-			/* For each row, only allocate enough edges, so that
-			 * we only include:
+			/* For each row, only allocate enough edges (to save space),
+			 * so that we only include:
 			 * 
 			 * 		- Valid edges.
 			 * 		- Invalid edges representing a centre of a cell.
@@ -57,7 +57,7 @@ public class Board {
 			 * inside the game board".
 			 */
 			
-			edges[r] = new Piece[2*dim + r - 2*Math.max(0, r - (2*dim - 1))];
+			edges[r] = new int[2*dim + r - 2*Math.max(0, r - (2*dim - 1))];
 			Arrays.fill(edges[r], Piece.EMPTY);
 		}
 
@@ -73,7 +73,7 @@ public class Board {
 	 */
 	private Board(int dim) {
 		// prepare the jagged arrays
-		edges = new Piece[4*dim - 1][];
+		edges = new int[4*dim - 1][];
 	}
 	
 	/** Create a deep copy of the board.
@@ -91,7 +91,7 @@ public class Board {
 		} else {
 			// initialise the 2D edge array
 			for (int r = 0; r < 4*dim - 1; r++) {
-				copy.edges[r] = new Piece[2*dim + r - 2*Math.max(0, r - (2*dim - 1))];
+				copy.edges[r] = new int[2*dim + r - 2*Math.max(0, r - (2*dim - 1))];
 				Arrays.fill(copy.edges[r], Piece.EMPTY);
 			}
 		}
@@ -116,7 +116,7 @@ public class Board {
 	 * is not a valid edge, or has already been occupied.
 	 * </p>
 	 */
-	private boolean occupyEdge(int r, int c, Piece color) {
+	private boolean occupyEdge(int r, int c, int color) {
 		// ensure the color of player is only BLUE or RED
 		assert(color == Piece.BLUE || color == Piece.RED);
 
@@ -181,7 +181,7 @@ public class Board {
 	 * If the coordinate (r, c) is not "on or in the game
 	 * board", then no action is taken.
 	 */
-	private void decrementCell(int r, int c, Piece color) {
+	private void decrementCell(int r, int c, int color) {
 		// do nothing if out or range
 		if (isOutOfRange(r, c)) {
 			return;
@@ -238,34 +238,40 @@ public class Board {
 	}
 	
 	/** Get the current turn for this board. */
-	public Piece getCurrTurn() {
+	public int getCurrTurn() {
 		return curr_turn;
 	}
 	
-	public void setCurrTurn(Piece value) {
+	public void setCurrTurn(int value) {
 		curr_turn = value;
 	}
 	
 	/** Get the status of an edge (empty, or captured)
 	 * <p>
-	 * If the edge is out of range, <code>null</code> is
-	 * returned instead.
+	 * If the edge is out of range, an exception is thrown.
 	 * </p>
 	 */
-	public Piece getEdge(int r, int c) {
+	public int getEdge(int r, int c) {
+		// in the case the edge is not even defined
+		// 'in the range'
 		if (isOutOfRange(r, c)) {
-			return null;
+			try {
+				throw new Exception();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		
 		return edges[r][c - Math.max(0, r - (2*dim - 1))];
 	}
 	
-	private void setEdge(int r, int c, Piece value) {
+	private void setEdge(int r, int c, int value) {
 		edges[r][c - Math.max(0, r - (2*dim - 1))] = value;
 	}
 	
 	/** Get a 2D array of edges representing the board. */
-	public Piece[][] getEdges() {
+	public int[][] getEdges() {
 		return edges;
 	}
 	
@@ -643,24 +649,38 @@ public class Board {
 	
 	public String toString() {
 		StringBuilder sb = new StringBuilder();
-		
-		for (int i = 0; i < edges.length; i++) {
+		for (int i = 0; i < 4*dim - 1; i++) {
 			
-			for (int j = 0; j < edges[i].length; j++) {
-				char c = '-';
-				
-				if (edges[i][j] == Piece.RED) {
-					c = 'R';
-				} else if (edges[i][j] == Piece.BLUE) {
-					c = 'B';
+			for (int j = 0; j < 4*dim - 1; j++) {
+				if (isOutOfRange(i, j)) {
+					sb.append('-');
+				} else if (isCentreCell(i, j)) {
+					
+					if (getEdge(i, j) == Piece.RED)
+						sb.append('r');
+					else if (getEdge(i, j) == Piece.BLUE)
+						sb.append('b');
+					else
+						sb.append('-');
+				} else {
+					
+					if (getEdge(i, j) == Piece.RED)
+						sb.append('R');
+					else if (getEdge(i, j) == Piece.BLUE)
+						sb.append('B');
+					else
+						sb.append('+');
+					
 				}
 				
-				sb.append(c);
+				sb.append(' ');
 			}
 			
-			sb.append(' ');
+			sb.setLength(sb.length() - 1);
+			sb.append('\n');
 		}
 		
+		sb.setLength(sb.length() - 1);
 		
 		return sb.toString();
 	}

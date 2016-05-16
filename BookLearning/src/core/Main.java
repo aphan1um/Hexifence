@@ -13,9 +13,9 @@ public class Main {
 	/** Dimension of board to be used. */
 	private static final int DIM = 2;
 	/** Color of our agent. */
-	public static final Piece myColor = Piece.RED;
+	public static final int myColor = Piece.RED;
 	/** Color of player to start the game. */
-	public static final Piece playerStart = Piece.BLUE;
+	public static final int playerStart = Piece.BLUE;
 	
 	private static TranspositionTable table = new TranspositionTable(DIM);
 	
@@ -23,22 +23,12 @@ public class Main {
 
 	public static void main(String[] args) {
 		Board b = new Board(DIM, myColor);
-		
-		b.occupyEdge(2, 1);
-		b.occupyEdge(1, 2);
-		b.occupyEdge(2, 2);
-		
-		List<ConnectedComponent> c = b.detectSCC();
-		
-		System.out.println(c.get(1).findCellWithLeastOpen());
-		
-		System.out.println(c.size());
-		/*
+
 		System.out.println("\nPerforming DFS...");
 		System.out.println("Minimax value of initial state: " + minimax_value(new Board(DIM, playerStart)));
 		System.out.println("Number entries made: " + table.getSize());
 		System.out.println("Number of states explored: " + num_explored);
-		*/
+		
 	}
 
 	public static int minimax_value(Board state) {

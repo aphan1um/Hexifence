@@ -23,7 +23,7 @@ public class ZobristHasher {
 		}
 	}
 	
-	public long generateHashKey(Piece[][] edges) {
+	public long generateHashKey(int[][] edges) {
 		long hashKey = 0;
 		int edgeIndex = 0;
 		
