@@ -14,7 +14,7 @@ public class Main {
 	/** Dimension of board to be used. */
 	private static final int DIM = 2;
 	/** Color of our agent. */
-	public static final int myColor = Piece.BLUE;
+	public static final int myColor = Piece.RED;
 	/** Color of player to start the game. */
 	public static final int playerStart = Piece.BLUE;
 	
@@ -40,43 +40,46 @@ public class Main {
 		*/
 
 		System.out.println("\nPerforming DFS...");
-		System.out.println("Minimax value of initial state: " + minimax_value(new Board(DIM, playerStart)));
+		
+		int[] result = minimax_value(new Board(DIM, playerStart));
+		
+		System.out.println("Minimax value of initial state: " + result[0] + "  " + result[1]);
 		System.out.println("Number entries made: " + table.getSize());
 		System.out.println("Number of states explored: " + num_explored);
 
 	}
 
-	public static int minimax_value(Board state) {
+	public static int[] minimax_value(Board state) {
 		num_explored++;
+		int[] ret = new int[2]; // index 0 = minimax value
+								// index 1 = capture value
 		
 		if (state.isFinished()) {		// terminal state
-			// System.out.println("TERMINAL: " + state.toBitString() + "\t\t" + state.getCurrTurn() + "\t" + state.getScore());
-			return 0;
+			ret[0] = state.getScoreDiff();
+			ret[1] = 0;
+			
+			return ret;
 		}
-		
-		// System.out.println("STATE START: " + state.toString() + "\t\t" + state.getCurrTurn());
 
 		// detect symmetry
 		Board sym = state.isRotateSymmetric(table);
 			
 		if (sym != null) {
-			/*
-			System.out.println("SYMMETRY: " + state.toString() + "\t " + table.getFullEntry(sym).rep +
-					"\t" + (state.toString().equals(sym.toString())) + "\t\t" + state.getCurrTurn() 
-					+ "\t HASH = " + table.getHash(sym) + "\t" + state.getScore() + "\t" + 
-					table.getEntry(sym));
-			*/
+			// TODO: FIX THIS
+			int possible_capt = table.getEntry(sym);
 			
+			ret[0] = state.getScoreDiff() + 2*possible_capt - state.getNumUncaptured();
+			ret[1] = possible_capt;
 			
-			return table.getEntry(sym);
+			return ret;
 		}
 
 		// go through each child of this state
-		Integer minimax = null;
+		int[] minimax = null;
 		Integer ch_score = null;
-		
-		int minimax_child;
+
 		int curr_ch_score;
+		int[] child_minimax;
 		// System.out.println("GOT FIRST MINIMAX CHILD");
 
 		// search through each child state with minimax
@@ -111,20 +114,20 @@ public class Main {
 
 					// TODO: present checks
 					curr_ch_score = child.getMyScore() - state.getMyScore();
-					minimax_child = minimax_value(child);
+					child_minimax = minimax_value(child);
 
 					if (state.getCurrTurn() == myColor) {
 						if (minimax == null ||
-							minimax_child + curr_ch_score > minimax) {
+							child_minimax[0] > minimax[0]) {
 							
-							minimax = minimax_child;
+							minimax = child_minimax;
 							ch_score = curr_ch_score;
 						}
 					} else {
 						if (minimax == null ||
-							minimax_child + curr_ch_score < minimax) {
+							child_minimax[0] < minimax[0]) {
 							
-							minimax = minimax_child;
+							minimax = child_minimax;
 							ch_score = curr_ch_score;
 						}
 					}
@@ -155,10 +158,10 @@ public class Main {
 		 *  	if the enemy or no-one captured).
 		 *
 		 */
-		minimax += ch_score;
+		minimax[1] += ch_score;
 
 		// System.out.println("\nSTATE END: " + state.toString() + "\t\t" + state.getScore() + "\t\t" + minimax_value + "\t\t" + state.getCurrTurn());
-		table.storeEntry(state, minimax);
+		table.storeEntry(state, minimax[1]);
 		
 		if (table.getSize() % 10000 == 0) {
 			System.out.println(table.getSize() + "\t\t" + num_explored + "\t\t" + (double)num_explored/table.getSize());

@@ -251,6 +251,13 @@ public class Board {
 		return curr_turn;
 	}
 	
+	/** Get the score difference between self and enemy.
+	 * Higher value means better result.
+	 */
+	public int getScoreDiff() {
+		return my_score - enemy_score;
+	}
+	
 	/** Switch the turn to the next player.
 	 */
 	public void switchTurns() {
