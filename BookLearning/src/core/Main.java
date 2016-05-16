@@ -22,10 +22,23 @@ public class Main {
 	private static long num_explored = 0;
 
 	public static void main(String[] args) {
+		Board b = new Board(DIM, myColor);
+		
+		b.occupyEdge(2, 1);
+		b.occupyEdge(1, 2);
+		b.occupyEdge(2, 2);
+		
+		List<ConnectedComponent> c = b.detectSCC();
+		
+		System.out.println(c.get(1).findCellWithLeastOpen());
+		
+		System.out.println(c.size());
+		/*
 		System.out.println("\nPerforming DFS...");
 		System.out.println("Minimax value of initial state: " + minimax_value(new Board(DIM, playerStart)));
 		System.out.println("Number entries made: " + table.getSize());
 		System.out.println("Number of states explored: " + num_explored);
+		*/
 	}
 
 	public static int minimax_value(Board state) {

@@ -1,8 +1,11 @@
 package core;
 
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 import aiproj.hexifence.Piece;
 
@@ -11,7 +14,7 @@ public class Board {
 	private static final int NUM_EDGES = 6;
 	/** Coordinate difference between a cell centre
 	 * and any of the six edges making up that cell. */
-	private static final int[][] EDGE_DIFF =
+	public static final int[][] EDGE_DIFF =
 		{ {0, -1}, {0, 1}, {-1, -1}, {-1, 0}, {1, 0}, {1, 1} };
 	
 	/** Represents the edges on the board
@@ -494,15 +497,19 @@ public class Board {
 		for (int[] diff : EDGE_DIFF) {
 			int edge_r = r + diff[0];
 			int edge_c = c + diff[1];
-			
-			// the distance between an "outer edge" and the centre of
-			// the board is: 2*dim - 1
-			if (getEdgeDist(edge_r, edge_c, dim) == 2*dim - 1) {
+
+			if (isOuterEdge(r, c)) {
 				count += (getEdge(edge_r, edge_c) == Piece.EMPTY) ? 0 : 1;
 			}
 		}
 
 		return count;
+	}
+	
+	private boolean isOuterEdge(int r, int c) {
+		// the distance between an "outer edge" and the centre of
+		// the board is: 2*dim - 1
+		return getEdgeDist(r, c, dim) == 2*dim - 1;
 	}
 	
 	/** Check if the corresponding interior edges of this board is the
@@ -523,6 +530,75 @@ public class Board {
 		}
 		
 		return true;
+	}
+	
+	/** Returns a list of strongly connected components, where
+	 * the cell's represent the vertices.
+	 * <p>
+	 * An edge exists between the two vertices, if the edge
+	 * between them is open/not occupied.
+	 * </p>
+	 */
+	public List<ConnectedComponent> detectSCC() {
+		List<ConnectedComponent> ret = new ArrayList<ConnectedComponent>();
+		List<Point> unexplored = new ArrayList<Point>();
+		
+		// cell coordinates, described in spec
+		
+		// add cell centres to the queue
+		for (int i = 0; i < 2*dim - 1; i++) {
+			int offset = Math.max(0, i - (dim - 1));
+			int num_cells = dim + i - 2*offset;
+			
+			for (int j = offset; j < offset + num_cells; j++) {
+				// convert into edge coordinates
+				int r_edge = 2*i + 1;
+				int c_edge = 2*j + 1;
+				Point p = new Point(r_edge, c_edge);
+				
+				unexplored.add(p);
+			}
+		}
+
+		while (!unexplored.isEmpty()) {
+			ConnectedComponent c = new ConnectedComponent(this);
+			Queue<Point> cells_to_explore = new LinkedList<Point>();
+			Point p_start = unexplored.remove(0);
+			
+			// add first cell to connected component
+			c.cells.add(p_start);
+			cells_to_explore.add(p_start);
+			
+			// if cell is captured, then forget about adding it as a
+			// singular connected component
+			if (getEdge(p_start.x, p_start.y) != Piece.EMPTY) {
+				continue;
+			}
+			
+			while (!cells_to_explore.isEmpty()) {
+				Point p = cells_to_explore.poll();
+				
+				for (int[] dif : EDGE_DIFF) {
+					Point adj_cell = new Point(p.x + 2*dif[0], p.y + 2*dif[1]);
+					
+					// ensure point is in range, the edge between the two
+					// cells is NOT occupied, and that it is unexplored
+					if (!isOutOfRange(p.x + dif[0], p.y + dif[1]) &&
+							getEdge(p.x + dif[0], p.y + dif[1]) == Piece.EMPTY
+							&& unexplored.contains(adj_cell)) {
+						
+						cells_to_explore.add(adj_cell);
+						
+						c.cells.add(adj_cell);
+						unexplored.remove(adj_cell);
+					}
+				}
+			}
+
+			ret.add(c);
+		}
+		
+		return ret;
 	}
 	
 	public boolean equals(Object obj) {
