@@ -1,4 +1,4 @@
-package core;
+package aiproj.hexifence.MartinAndy;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -11,8 +11,8 @@ import aiproj.hexifence.Piece;
 public class Main {
 	// NOTE: Temporary static variables below (may be removed in future)
 	
-	/** Dimension of board to be used. */
-	private static final int DIM = 2;
+	/** Dimension of board to be used (>= 1). */
+	private static final int DIM = 3;
 	/** Color of our agent. */
 	public static final int myColor = Piece.RED;
 	/** Color of player to start the game. */
@@ -76,7 +76,7 @@ public class Main {
 
 		// go through each child of this state
 		int[] minimax = null;
-		Integer ch_score = null;
+		int capt_score = 0;
 
 		int curr_ch_score;
 		int[] child_minimax;
@@ -121,14 +121,14 @@ public class Main {
 							child_minimax[0] > minimax[0]) {
 							
 							minimax = child_minimax;
-							ch_score = curr_ch_score;
+							capt_score = curr_ch_score;
 						}
 					} else {
 						if (minimax == null ||
 							child_minimax[0] < minimax[0]) {
 							
 							minimax = child_minimax;
-							ch_score = curr_ch_score;
+							capt_score = curr_ch_score;
 						}
 					}
 					
@@ -142,23 +142,22 @@ public class Main {
 
 		/*
 		 * If current turn is self:
-		 * 		minimax_value has the maximum optimal number of cells that
-		 * 		can be captured, STARTING from the child state with this
-		 * 		minimax value.
+		 * 		minimax[1] has the maximum optimal number of cells that
+		 * 		can be captured by self, STARTING from the child state
+		 * 		with this minimax value.
 		 * 
-		 * 		ch_score considers if a cell was captured (by self) when
-		 * 		ENTERING this child state.
+		 * 		capt_score counts the number of cells captured by self,
+		 *		due to a move BEFORE reaching to the child state.
 		 * 
 		 *  	Thus the total number of cells captured FROM this state
-		 *  	is minimax_value + ch_score.
+		 *  	is minimax[1] + capt_score.
 		 *  
 		 *  	If the child state was a terminal state (ie. this state
 		 *  	has only one open edge left), then the child state returns
-		 *  	a minimax value of 0, but with ch_score of 1 or 2 (or 0
-		 *  	if the enemy or no-one captured).
+		 *  	minimax[1] = 0.
 		 *
 		 */
-		minimax[1] += ch_score;
+		minimax[1] += capt_score;
 
 		// System.out.println("\nSTATE END: " + state.toString() + "\t\t" + state.getScore() + "\t\t" + minimax_value + "\t\t" + state.getCurrTurn());
 		table.storeEntry(state, minimax[1]);

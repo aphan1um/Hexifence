@@ -1,4 +1,4 @@
-package core;
+package aiproj.hexifence.MartinAndy;
 
 import java.io.PrintStream;
 
@@ -9,7 +9,8 @@ import aiproj.hexifence.Player;
 // TODO: Rename this class (a mix of names?)
 public class PlayerAgent implements Player, Piece {
 	private Board board;
-	
+	private int myColor;
+	private boolean receivedIllegal = false;
 	
 	@Override
 	public int init(int n, int p) {
@@ -31,8 +32,24 @@ public class PlayerAgent implements Player, Piece {
 
 	@Override
 	public int getWinner() {
-		// TODO Auto-generated method stub
-		return 0;
+		// illegal move performed by opponent
+		if (receivedIllegal) {
+			return Piece.INVALID;
+		}
+		
+		if (board.isFinished()) {
+			if (board.getScoreDiff() == 0)
+				return Piece.DEAD;
+			else if (board.getScoreDiff() < 0) {
+				return (myColor == Piece.RED) ?
+						Piece.BLUE : Piece.RED;
+			} else {
+				return myColor;
+			}
+		}
+
+		// game not finished yet
+		return Piece.EMPTY;
 	}
 
 	@Override

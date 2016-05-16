@@ -1,4 +1,4 @@
-package core;
+package aiproj.hexifence.MartinAndy;
 
 import java.util.HashMap;
 
@@ -53,12 +53,12 @@ public class TranspositionTable {
 
 			table.put(hashKey, store_value);
 		} else {
-			
+			// if we happen to come across a board with different
+			//  value, then the one already stored in table
 			if (getEntry(board) != value) {
 				try {
 					throw new Exception();
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 					System.exit(0);
 				}

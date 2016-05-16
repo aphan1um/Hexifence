@@ -1,4 +1,4 @@
-package core;
+package aiproj.hexifence.MartinAndy;
 
 import java.awt.Point;
 import java.util.ArrayList;
@@ -178,6 +178,8 @@ public class Board {
 		return true;
 	}
 	
+	/** Occupy an edge, based on the Move class data.
+	 */
 	public boolean occupyEdge(Move move) {
 		return occupyEdge(move.Row, move.Col, move.P);
 	}
