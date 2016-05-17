@@ -8,7 +8,7 @@ import aiproj.hexifence.Piece;
 
 public class LearningTest {
 	private static final int TWO_DIM = 2;
-	private static final int THREE_DIM = 2;
+	private static final int THREE_DIM = 3;
 	private static final int SEED = 54321;
 	
 	private static final int NUM_SAMPLES = 10000;
@@ -26,17 +26,19 @@ public class LearningTest {
 			
 			GradientDescentLearn utilityCalc = new GradientDescentLearn(dim);
 			
-			int[][] edges = board.getEdges(); 
-			
-			for (int j = 0; j < edges.length; j++) {
-				for (int k = 0; k < edges[j].length; k++) {
+			for (int j = 0; j < board.getEdges().length; j++) {
+				int offset = Math.max(0, j - (2*dim - 1));
+				
+				for (int k = 0; k < board.getEdges()[j].length; k++) {
 					if (j % 2 == 1 && k % 2 == 1) {
 						continue;
 					}
 					
-					edges[j][k] = rand.nextBoolean() ? Piece.BLUE : Piece.RED;
+					board.occupyEdge(j, k + offset, rand.nextBoolean() ? Piece.BLUE : Piece.RED);
 				}
 			}
+			
+			int[][] edges = board.getEdges();
 			
 			List<Point> cells = board.getUncapturedCells();
 			
