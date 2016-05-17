@@ -219,7 +219,7 @@ public class Board {
 	/** Check if the coordinate (r, c) actually represents the
 	 * centre of some cell.
 	 */
-	private boolean isCentreCell(int r, int c) {
+	public boolean isCentreCell(int r, int c) {
 		return !isOutOfRange(r, c) && (r % 2 == 1) && (c % 2 == 1);
 	}
 	
@@ -362,7 +362,7 @@ public class Board {
 	/** Checks if (r, c) is not "on or inside the game board".
 	 */
 	public boolean isOutOfRange(int r, int c) {
-		return (r < 0 || r >= 4*dim ||
+		return (r < 0 || r >= 4*dim - 1 ||
 				c - Math.max(0, r - (2*dim - 1)) < 0  ||
 				c > getMaxColumn(r, dim));
 	}
@@ -586,7 +586,7 @@ public class Board {
 		return count;
 	}
 	
-	private boolean isOuterEdge(int r, int c) {
+	public boolean isOuterEdge(int r, int c) {
 		// the distance between an "outer edge" and the centre of
 		// the board is: 2*dim - 1
 		return getEdgeDist(r, c, dim) == 2*dim - 1;

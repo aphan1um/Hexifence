@@ -1,11 +1,14 @@
 package aiproj.hexifence.MartinAndy;
 
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Queue;
 
 import aiproj.hexifence.Piece;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.awt.Point;
 
@@ -15,16 +18,7 @@ public class ConnectedGraph {
 	public Board board;
 	private Boolean potential_chain;
 	
-	public ConnectedGraph(Board board) {
-		this.components = new ArrayList<Point[]>();
-		this.board = board;
-		this.potential_chain = null;
-		this.chains = new ArrayList<Chain>();
-	}
-
-	/** Check if there is a cell with 2 open edges left; then
-	 * 
-	 */
+	/*
 	private boolean possiblePotentChain() {
 		// if the info about chain has been calculated previously
 		if (potential_chain != null)
@@ -47,6 +41,7 @@ public class ConnectedGraph {
 		
 		return potential_chain;
 	}
+	*/
 	
 	/** Get a list of chains from this board.
 	 */
@@ -73,130 +68,188 @@ public class ConnectedGraph {
 	 * where the cell's represent the vertices, and the edges
 	 * between the cell's being the 'edges of the graph'.
 	 */
-	public static ConnectedGraph detectSCC(Board b) {
-		// list of connected components of game board
-		ConnectedGraph ret = new ConnectedGraph(b);
-		
-		// unexplored cells
-		List<Point> unexplored = b.getUncapturedCells();
-		
+	public ConnectedGraph(Board b) {
+		this.components = new ArrayList<Point[]>();
+		this.board = b;
+		this.potential_chain = null;
+		this.chains = new ArrayList<Chain>();
+
 		// deep copy of the original board; we will use this
 		// to find chains, by modifying the cloned board over time
 		Board bclone = b.deepCopy(true);
+		
+		Queue<Point> cell_open = new LinkedList<Point>();
+		List<Point> unexplored = bclone.getUncapturedCells();
+		
+		for (Point pt : unexplored) {
+			if (bclone.getNumOpen(pt.x, pt.y) == 1) {
+				cell_open.add(pt);
+			}
+		}
 
-		while (!unexplored.isEmpty()) {
-			List<Point> comp = new ArrayList<Point>();
-			Point p_start = unexplored.remove(0);
+		chains = getChains(cell_open, bclone);
+		/*
+		for (Chain c : p) {
+			for (Point a1 : c.cells) {
+				System.out.println(a1.toString());
+			}
 			
-			// cells to explore, in a connected component
-			comp.add(p_start);
-			Queue<Point> cells_to_explore = new LinkedList<Point>();
+			System.out.println(c.isClosed);
+		}
+		
+		System.out.println("size = " + p.size());
+		*/
+	}
+	
+	private List<Chain> getChains(Queue<Point> cell_open, Board bclone) {
+		
+		HashMap<Point, Chain> wait_lst = 
+				new HashMap<Point, Chain>();
+		
+		List<Chain> final_chains = new ArrayList<Chain>();
+		
+		while (!cell_open.isEmpty()) {
+			System.out.println(cell_open.peek());
 			
-			// add first cell to the connected component
-			cells_to_explore.add(p_start);
-
+			Chain new_chain = new Chain();
+			Point chain_stop = createChain(cell_open, bclone, new_chain);
+		
+			System.out.println("new chain: " + new_chain.cells + "\t\t stop: " + chain_stop);
 			
-			List<Point> cell_path = new ArrayList<Point>();
-			int num_closed = 0;
+			if (new_chain.cells.isEmpty()) {
+				continue;
+			}
 			
-			CELL_EXPLORE_LOOP:
-			while (!cells_to_explore.isEmpty()) {
-				Point p = cells_to_explore.poll();
-				// if the cell is not part of a chain
-				boolean is_not_part_chain = false;
-				boolean recheck = false;
-
-				// if current cell under exploration only has
-				// one edge left => part of a chain
-				if (b.getNumOpen(p.x, p.y) == 1) {
-					cell_path.add(p);
-				}
+			// merge two chains, if one chain was able to extend further
+			// than the other one
+			for (Iterator<Entry<Point, Chain>> iterator = 
+					wait_lst.entrySet().iterator();
+					iterator.hasNext(); ) {
+				Entry<Point, Chain> entry = iterator.next();
+				int index;
 				
-				EDGES_LOOP:
-				for (int[] dif : Board.EDGE_DIFF) {
+				if ((index = new_chain.cells.indexOf(entry.getKey())) != -1) {
+					new_chain.cells.addAll(index, entry.getValue().cells);
 					
-					Point adj_cell = new Point(p.x + 2*dif[0], p.y + 2*dif[1]);
-					Point adj_edge = new Point(p.x + dif[0], p.y + dif[1]);
-
-					// ensure point is in range, the edge between the two
-					// cells is NOT occupied, and that it is unexplored
-					if (!bclone.isOutOfRange(adj_edge.x, adj_edge.y) &&
-						bclone.getEdge(adj_edge.x, adj_edge.y) == Piece.EMPTY
-						&& unexplored.contains(adj_cell)) {
-						
-						int num_open = bclone.getNumOpen(
-								adj_cell.x, adj_cell.y);
-						
-						
-						// if the current cell has only one edge open,
-						// and the next one has only 2 (so taking this edge
-						// will capture the current one, and allow us to take
-						// the adjacent as well)
-						if (num_open == 2 &&
-								bclone.getNumOpen(p.x, p.y) == 1) {
-							
-							bclone.occupyEdge(adj_edge.x, adj_edge.y);
-							cell_path.add(adj_cell);
-							cells_to_explore.add(adj_cell);
-							
-							// since current cell has only one open edge, then
-							// we can skip looking around the cell further
-							unexplored.remove(adj_cell);
-							continue CELL_EXPLORE_LOOP;
-						
-						// adjacent cell has only one edge left
-						} else if (num_open == 1) {
-							bclone.occupyEdge(adj_edge.x, adj_edge.y);
-							
-							// no need to explore adjacent cell, since the
-							// current cell is the only one connected to it							
-							cell_path.add(adj_cell);
-							num_closed++;
-							recheck = true;
-						} else {
-							// for other cases
-							cells_to_explore.add(adj_cell);
-							comp.add(adj_cell);
-							is_not_part_chain = true;
-						}
-						
-						unexplored.remove(adj_cell);
-						
-						if (recheck) {
-							recheck = false;
-							
-							if (bclone.getNumOpen(p.x, p.y) == 1) {
-								cell_path.add(p);
-							}
-							
-							continue EDGES_LOOP;
-						}
-					}
-				}
-				
-				// if the cell is not part of a chain, then simply put it
-				// as a cell in a connected component
-				if (is_not_part_chain && !comp.contains(p)) {
-					comp.add(p);
-				}
-
-				// a chain path, if one was formed
-				if (cell_path.size() > 0) {
-					Chain new_chain = new Chain();
-					new_chain.isClosed = (num_closed == 0) ? false : true;
-					new_chain.cells = cell_path.toArray(
-										new Point[cell_path.size()]);
+					if (entry.getValue().isClosed == false)
+						new_chain.isClosed = false;
 					
-					ret.chains.add(new_chain);
-					cell_path.clear();
+					iterator.remove();
 				}
 			}
 
-			// add connected component to list, once we have
-			// searched every uncaptured cell in it
-			ret.components.add(comp.toArray(new Point[comp.size()]));
+			if (chain_stop != null) {
+				wait_lst.put(chain_stop, new_chain);
+			} else {
+				final_chains.add(new_chain);
+			}
+		}
+
+		
+		// remaining chains
+		for (Entry<Point, Chain> entry : wait_lst.entrySet()) {
+			entry.getValue().isClosed = false;
+			final_chains.add(entry.getValue());
 		}
 		
-		return ret;
+		return final_chains;
+	}
+	
+	private Point createChain(Queue<Point> cell_open,
+			Board bclone, Chain chain) {
+		
+		Point start = cell_open.poll();
+		
+		return exploreChains(start, bclone, cell_open, chain);
+	}
+
+	private Point exploreChains(Point p, Board bclone,
+			Queue<Point> cell_open,
+			Chain chain) {
+
+		Queue<Point> queue = new LinkedList<Point>();
+		List<Point> explored = new ArrayList<Point>();
+		
+		// add start cell to list (should be a cell with
+		// only one edge left)
+		queue.offer(p);
+
+		while (!queue.isEmpty()) {
+			Point curr_p = queue.poll();
+			int curr_p_open = bclone.getNumOpen(curr_p.x, curr_p.y);
+			int count = 0;
+			
+			if (curr_p_open == 0) {
+				if (curr_p != p) {
+					chain.cells.add(curr_p);
+				}
+				
+				return null;
+			}
+
+			for (int[] dif : Board.EDGE_DIFF) {
+				// get the adjacent cell, and the edge between the
+				// two cells
+				Point adj_c = new Point(curr_p.x + 2*dif[0], curr_p.y + 2*dif[1]);
+				Point adj_ed = new Point(curr_p.x + dif[0], curr_p.y + dif[1]);
+
+				// ensure point is in range, the edge between the two
+				// cells is NOT occupied, and that it is unexplored
+				if (bclone.isOutOfRange(adj_ed.x, adj_ed.y) 
+					  || bclone.getEdge(adj_ed.x, adj_ed.y) != Piece.EMPTY) {
+					continue;
+				}
+				
+				// check that the adjacent cell is valid in the board,
+				// or that the valid edge lies at the end of the board,
+				// and that it has not been explored
+				if (!bclone.isOuterEdge(adj_ed.x, adj_ed.y) &&
+					  (!bclone.isCentreCell(adj_c.x, adj_c.y) || 
+							  explored.contains(adj_c))) {
+					continue;
+				}
+
+				explored.add(adj_c);
+
+				// current cell has only one edge left, and we found
+				// that last edge
+				if (curr_p_open == 1) {
+					bclone.occupyEdge(adj_ed.x, adj_ed.y);
+
+					queue.offer(adj_c);
+					chain.cells.add(curr_p);
+					
+					// remove the cell with only one edge left into
+					// cell_open (if it is in there)
+					cell_open.remove(p);
+
+					// if edge is at the end of game board, then there
+					// is no point looking further
+					if (bclone.isOuterEdge(adj_ed.x, adj_ed.y)) {
+						chain.isClosed = false;
+						return null;
+					}
+					
+					break;
+				}
+				
+				count++;
+			}
+			
+			/*
+			 * if it happens that there more than one open edge at current 
+			 * cell; in that case, return curr_p, and hold finishing the
+			 * chain until curr_p has only one free edge left
+			 * 
+			 * if this never occurs, then the chain ends before curr_p
+			 */
+			if (count > 0) {
+				return curr_p;
+			}
+		}
+		
+		// we get here if there no edges around current cell to
+		// traverse through
+		return null;
 	}
 }
