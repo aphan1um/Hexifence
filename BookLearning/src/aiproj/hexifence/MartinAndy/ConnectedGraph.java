@@ -6,8 +6,6 @@ import java.util.Queue;
 import aiproj.hexifence.Piece;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.awt.Point;
 
@@ -44,6 +42,8 @@ public class ConnectedGraph {
 				}
 			}
 		}
+		
+		potential_chain = false;
 		
 		return potential_chain;
 	}
@@ -99,15 +99,20 @@ public class ConnectedGraph {
 			List<Point> cell_path = new ArrayList<Point>();
 			int num_closed = 0;
 			
+			CELL_EXPLORE_LOOP:
 			while (!cells_to_explore.isEmpty()) {
 				Point p = cells_to_explore.poll();
-				boolean is_part_chain = false;
+				// if the cell is not part of a chain
+				boolean is_not_part_chain = false;
+				boolean recheck = false;
 
-				// cell only has one edge left => part of a chain
+				// if current cell under exploration only has
+				// one edge left => part of a chain
 				if (b.getNumOpen(p.x, p.y) == 1) {
 					cell_path.add(p);
 				}
-								
+				
+				EDGES_LOOP:
 				for (int[] dif : Board.EDGE_DIFF) {
 					
 					Point adj_cell = new Point(p.x + 2*dif[0], p.y + 2*dif[1]);
@@ -122,6 +127,7 @@ public class ConnectedGraph {
 						int num_open = bclone.getNumOpen(
 								adj_cell.x, adj_cell.y);
 						
+						
 						// if the current cell has only one edge open,
 						// and the next one has only 2 (so taking this edge
 						// will capture the current one, and allow us to take
@@ -130,35 +136,47 @@ public class ConnectedGraph {
 								bclone.getNumOpen(p.x, p.y) == 1) {
 							
 							bclone.occupyEdge(adj_edge.x, adj_edge.y);
-							cell_path.add(p);
-							
+							cell_path.add(adj_cell);
 							cells_to_explore.add(adj_cell);
 							
 							// since current cell has only one open edge, then
 							// we can skip looking around the cell further
 							unexplored.remove(adj_cell);
-							continue;
+							continue CELL_EXPLORE_LOOP;
 						
 						// adjacent cell has only one edge left
 						} else if (num_open == 1) {
 							bclone.occupyEdge(adj_edge.x, adj_edge.y);
 							
 							// no need to explore adjacent cell, since the
-							// current cell is the only one connected to it
+							// current cell is the only one connected to it							
 							cell_path.add(adj_cell);
 							num_closed++;
+							recheck = true;
 						} else {
 							// for other cases
 							cells_to_explore.add(adj_cell);
 							comp.add(adj_cell);
-							is_part_chain = true;
+							is_not_part_chain = true;
 						}
 						
 						unexplored.remove(adj_cell);
+						
+						if (recheck) {
+							recheck = false;
+							
+							if (bclone.getNumOpen(p.x, p.y) == 1) {
+								cell_path.add(p);
+							}
+							
+							continue EDGES_LOOP;
+						}
 					}
 				}
 				
-				if (is_part_chain && !comp.contains(p)) {
+				// if the cell is not part of a chain, then simply put it
+				// as a cell in a connected component
+				if (is_not_part_chain && !comp.contains(p)) {
 					comp.add(p);
 				}
 
