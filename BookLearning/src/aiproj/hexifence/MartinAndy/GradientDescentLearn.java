@@ -10,9 +10,6 @@ public class GradientDescentLearn {
 	
 	private long num_explored = 0;
 	
-	private int s_low_level = 9000;
-	private int s_best_value = 0;
-	
 	private int dim;
 	
 	public GradientDescentLearn(int dim) {
@@ -22,13 +19,13 @@ public class GradientDescentLearn {
 	}
 	
 	public int getInitMinimax() {
-		int[] result = minimax_value(new Board(dim, Main.playerStart), 0);
+		int[] result = minimax_value(new Board(dim, Main.playerStart));
 		
 		return result[0];
 	}
 	
 	
-	public int[] minimax_value(Board state, int level) {
+	public int[] minimax_value(Board state) {
 		num_explored++;
 		int[] ret = new int[2]; // index 0 = minimax value
 								// index 1 = capture value
@@ -44,7 +41,6 @@ public class GradientDescentLearn {
 		Board sym = state.isRotateSymmetric(table);
 			
 		if (sym != null) {
-			// TODO: FIX THIS
 			int possible_capt = table.getEntry(sym);
 			
 			ret[0] = state.getScoreDiff() + 2*possible_capt - state.getNumUncaptured();
@@ -59,7 +55,6 @@ public class GradientDescentLearn {
 
 		int curr_ch_score;
 		int[] child_minimax;
-		// System.out.println("GOT FIRST MINIMAX CHILD");
 
 		// search through each child state with minimax
 		Board child = state.deepCopy(true);
@@ -93,7 +88,7 @@ public class GradientDescentLearn {
 
 					// TODO: present checks
 					curr_ch_score = child.getMyScore() - state.getMyScore();
-					child_minimax = minimax_value(child, level + 1);
+					child_minimax = minimax_value(child);
 
 					if (state.getCurrTurn() == Main.myColor) {
 						if (minimax == null ||
@@ -141,15 +136,9 @@ public class GradientDescentLearn {
 		// System.out.println("\nSTATE END: " + state.toString() + "\t\t" + state.getScore() + "\t\t" + minimax_value + "\t\t" + state.getCurrTurn());
 		table.storeEntry(state, minimax[1]);
 		
-		if (level < s_low_level || (level == s_low_level && s_best_value < minimax[0])) {
-			s_low_level = level;
-			s_best_value = minimax[0];
-			
-			System.out.println(table.getSize() + "\t\t" + num_explored +
-					"\t\t" + s_low_level + "  " + s_best_value + "  " + minimax[1]);
+		if (table.getSize() % 10000 == 0) {	
+			System.out.println(table.getSize() + "\t\t" + num_explored);
 		}
-		
-
 
 		return minimax;
 	}

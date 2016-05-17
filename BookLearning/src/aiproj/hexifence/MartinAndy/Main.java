@@ -27,7 +27,7 @@ public class Main {
 		
 		System.out.println(b.toString());
 		
-		List<ConnectedComponent> c = b.detectSCC();
+		List<ConnectedComponent> c = ConnectedComponent.detectSCC(b);
 		
 		System.out.println(c.get(1).findCellWithLeastOpen());
 		System.out.println(c.size());

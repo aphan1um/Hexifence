@@ -196,21 +196,12 @@ public class Board {
 	 */
 	private void decrementCell(int r, int c, int color) {
 		// do nothing if out or range
-		if (isOutOfRange(r, c)) {
+		if (!isCentreCell(r, c)) {
 			return;
-		}
-		
-		int num_closed = 0;
-		
-		// count number of edges around cell which aren't open
-		for (int[] diff : EDGE_DIFF) {
-			if (getEdge(r + diff[0], c + diff[1]) != Piece.EMPTY) {
-				num_closed++;
-			}
 		}
 
 		// all of cell's edges occupied  ==>  cell captured
-		if (num_closed == NUM_EDGES) {
+		if (getNumOpen(r, c) == 0) {
 			// color centre cell as captured
 			setEdge(r, c, color);
 
@@ -223,6 +214,62 @@ public class Board {
 			// decrement amount of uncaptured cells
 			num_uncaptured--;
 		}
+	}
+	
+	/** Check if the coordinate (r, c) actually represents the
+	 * centre of some cell.
+	 */
+	private boolean isCentreCell(int r, int c) {
+		return !isOutOfRange(r, c) && (r % 2 == 1) && (c % 2 == 1);
+	}
+	
+	/** Get the number of edges open around a cell, centred
+	 * at (r, c). This includes 'inner edges' and
+	 * 'outer edges'
+	 */
+	public int getNumOpen(int r, int c) {
+		// return negative value if (r,c) does not represent
+		// the centre of a cell
+		if (!isCentreCell(r, c)) {
+			return -1;
+		}
+		
+		int num_open = 0;
+		
+		// count number of edges around cell which are open
+		for (int[] diff : EDGE_DIFF) {
+			if (getEdge(r + diff[0], c + diff[1]) == Piece.EMPTY) {
+				num_open++;
+			}
+		}
+		
+		return num_open;
+	}
+	
+	/** Get a list of uncaptured cells in edge coordinates.
+	 */
+	public List<Point> getUncapturedCells() {
+		List<Point> uncapt_cells = new ArrayList<Point>();
+		
+		// go through each cell in the board, in cell
+		// coordinates
+		for (int i = 0; i < 2*dim - 1; i++) {
+			int offset = Math.max(0, i - (dim - 1));
+			int num_cells = dim + i - 2*offset;
+			
+			for (int j = offset; j < offset + num_cells; j++) {
+				// convert into edge coordinates
+				int r_edge = 2*i + 1;
+				int c_edge = 2*j + 1;
+				Point p = new Point(r_edge, c_edge);
+				
+				// if cell is not captured, then add to list
+				if (getEdge(r_edge, c_edge) == Piece.EMPTY)
+					uncapt_cells.add(p);
+			}
+		}
+		
+		return uncapt_cells;
 	}
 	
 	/** Check if the board has been completely filled.
@@ -307,19 +354,18 @@ public class Board {
 		return num_uncaptured;
 	}
 	
-	/** Check if the coordinate (r, c) actually represents the
-	 * centre of some cell.
-	 */
-	private static boolean isCentreCell(int r, int c) {
-		return (r % 2 == 1) && (c % 2 == 1);
-	}
+
 	
 	/** Checks if (r, c) is not "on or inside the game board".
 	 */
-	private boolean isOutOfRange(int r, int c) {
+	public boolean isOutOfRange(int r, int c) {
 		return (r < 0 || r >= 4*dim ||
 				c - Math.max(0, r - (2*dim - 1)) < 0  ||
 				c > getMaxColumn(r, dim));
+	}
+	
+	public int getDim() {
+		return dim;
 	}
 
 	/** Convert a given (r, c) coordinate into a 3D cube coordinate
@@ -561,75 +607,6 @@ public class Board {
 		}
 		
 		return true;
-	}
-	
-	/** Returns a list of strongly connected components, where
-	 * the cell's represent the vertices.
-	 * <p>
-	 * An edge exists between the two vertices, if the edge
-	 * between them is open/not occupied.
-	 * </p>
-	 */
-	public List<ConnectedComponent> detectSCC() {
-		List<ConnectedComponent> ret = new ArrayList<ConnectedComponent>();
-		List<Point> unexplored = new ArrayList<Point>();
-		
-		// cell coordinates, described in spec
-		
-		// add cell centres to the queue
-		for (int i = 0; i < 2*dim - 1; i++) {
-			int offset = Math.max(0, i - (dim - 1));
-			int num_cells = dim + i - 2*offset;
-			
-			for (int j = offset; j < offset + num_cells; j++) {
-				// convert into edge coordinates
-				int r_edge = 2*i + 1;
-				int c_edge = 2*j + 1;
-				Point p = new Point(r_edge, c_edge);
-				
-				unexplored.add(p);
-			}
-		}
-
-		while (!unexplored.isEmpty()) {
-			ConnectedComponent c = new ConnectedComponent(this);
-			Queue<Point> cells_to_explore = new LinkedList<Point>();
-			Point p_start = unexplored.remove(0);
-			
-			// add first cell to connected component
-			c.cells.add(p_start);
-			cells_to_explore.add(p_start);
-			
-			// if cell is captured, then forget about adding it as a
-			// singular connected component
-			if (getEdge(p_start.x, p_start.y) != Piece.EMPTY) {
-				continue;
-			}
-			
-			while (!cells_to_explore.isEmpty()) {
-				Point p = cells_to_explore.poll();
-				
-				for (int[] dif : EDGE_DIFF) {
-					Point adj_cell = new Point(p.x + 2*dif[0], p.y + 2*dif[1]);
-					
-					// ensure point is in range, the edge between the two
-					// cells is NOT occupied, and that it is unexplored
-					if (!isOutOfRange(p.x + dif[0], p.y + dif[1]) &&
-							getEdge(p.x + dif[0], p.y + dif[1]) == Piece.EMPTY
-							&& unexplored.contains(adj_cell)) {
-						
-						cells_to_explore.add(adj_cell);
-						
-						c.cells.add(adj_cell);
-						unexplored.remove(adj_cell);
-					}
-				}
-			}
-
-			ret.add(c);
-		}
-		
-		return ret;
 	}
 	
 	public boolean equals(Object obj) {
