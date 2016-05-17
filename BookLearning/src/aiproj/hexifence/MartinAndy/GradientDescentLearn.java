@@ -60,6 +60,8 @@ public class GradientDescentLearn {
 		Board child = state.deepCopy(true);
 		List<Board> sym_childs = new ArrayList<Board>();
 		
+		// naively look through each possible move, based on
+		// current board state
 		for (int r = 0; r < child.getEdges().length; r++) {
 			for (int c = 0; c < child.getEdges()[r].length; c++) {
 				// create a move
@@ -142,5 +144,41 @@ public class GradientDescentLearn {
 
 		return minimax;
 	}
+	/* TODO: Finish this
+	private void preprocess_step(Board b) {
+		// ensure preprocess step happens at our turn
+		if (b.getCurrTurn() != Main.myColor)
+			return;
+		
+		List<ConnectedComponent> chains = ConnectedComponent.detectSCC(b, true);
+		
+		// if there chains, then there is nothing to do
+		if (chains.size() == 0)
+			return;
 
+		List<ConnectedComponent> comps = ConnectedComponent.detectSCC(b, false);
+		List<ConnectedComponent> potent_chain = new ArrayList<ConnectedComponent>();
+		
+		// find all potential chains and add it to filtered list
+		for (ConnectedComponent c : comps) {
+			if (c.isPotentialChain())
+				potent_chain.add(c);
+		}
+		
+		// largest chain is half open
+		if (chains.get(chains.size() - 1).isHalfOpen()) {
+			// if a potential chain exists, then choose the smallest
+			// potential chain
+			if (potent_chain.size() > 0) {
+				
+			} else if (comps.size() > 0) {
+				
+			}
+			
+		} else {
+			// closed chain
+			
+		}
+	}
+	*/
 }

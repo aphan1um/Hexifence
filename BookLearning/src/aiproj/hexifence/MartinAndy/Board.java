@@ -12,7 +12,7 @@ import aiproj.hexifence.Piece;
 
 public class Board {
 	/** Number of edges surrounding a cell. */
-	private static final int NUM_EDGES = 6;
+	public static final int NUM_EDGES = 6;
 	/** Coordinate difference between a cell centre
 	 * and any of the six edges making up that cell. */
 	public static final int[][] EDGE_DIFF =
@@ -123,7 +123,7 @@ public class Board {
 	 * nothing.
 	 * </p>
 	 */
-	private boolean occupyEdge(int r, int c, int color) {
+	public boolean occupyEdge(int r, int c, int color) {
 		// ensure the color of player is only BLUE or RED
 		assert(color == Piece.BLUE || color == Piece.RED);
 

@@ -17,14 +17,22 @@ public class Main {
 	public static void main(String[] args) {
 		Board b = new Board(DIM, myColor);
 		
+		b.occupyEdge(0, 0);
+		b.occupyEdge(0, 1);
+		b.occupyEdge(0, 2);
+		b.occupyEdge(0, 3);
+		
+		b.occupyEdge(1, 0);
+		
 		b.occupyEdge(2, 1);
-		b.occupyEdge(1, 2);
 		b.occupyEdge(2, 2);
+		b.occupyEdge(2, 3);
+		b.occupyEdge(2, 4);
 		
-		System.out.println(b.toString());
+		ConnectedGraph c = ConnectedGraph.detectSCC(b);
+		System.out.println(c.chains.get(0).cells.length);
 		
-		List<ConnectedComponent> c = ConnectedComponent.detectSCC(b, false);
-		
+		/**
 		System.out.println(c.get(1).getCellWithLeastOpen());
 		System.out.println(c.size());
 
@@ -32,6 +40,7 @@ public class Main {
 
 		System.out.println("\nPerforming DFS...");
 		System.out.println("Minimax value of initial state: " + gdl.getInitMinimax());
+		**/
 	}
 
 	
