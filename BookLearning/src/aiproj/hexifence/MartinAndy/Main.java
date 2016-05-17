@@ -1,9 +1,7 @@
 package aiproj.hexifence.MartinAndy;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 
 import aiproj.hexifence.Move;
 import aiproj.hexifence.Piece;
@@ -12,7 +10,7 @@ public class Main {
 	// NOTE: Temporary static variables below (may be removed in future)
 	
 	/** Dimension of board to be used (>= 1). */
-	private static final int DIM = 3;
+	private static final int DIM = 2;
 	/** Color of our agent. */
 	public static final int myColor = Piece.RED;
 	/** Color of player to start the game. */
@@ -20,67 +18,40 @@ public class Main {
 	
 	private static TranspositionTable table = new TranspositionTable(DIM);
 	
+	// statistics to keep track on minimax
 	private static long num_explored = 0;
+	private static int static_minimax_best = 0;
+	private static int static_lowest_level = 9000;
 
 	public static void main(String[] args) {
-		/*
-		Board b = new Board(DIM, myColor);
-		
-		b.occupyEdge(2, 1);
-		b.occupyEdge(1, 2);
-		b.occupyEdge(2, 2);
-		
-		System.out.println(b.toString());
-		
-		List<ConnectedComponent> c = b.detectSCC();
-		
-		System.out.println(c.get(1).findCellWithLeastOpen());
-		
-		System.out.println(c.size());
-		*/
-
 		System.out.println("\nPerforming DFS...");
 		
-		int[] result = minimax_value(new Board(DIM, playerStart));
+		int result = minimax_value(new Board(DIM, playerStart), 0);
 		
-		System.out.println("Minimax value of initial state: " + result[0] + "  " + result[1]);
+		System.out.println("Minimax value of initial state: " + result);
 		System.out.println("Number entries made: " + table.getSize());
 		System.out.println("Number of states explored: " + num_explored);
+		System.out.println(static_lowest_level + "  " + static_minimax_best);
 
 	}
 
-	public static int[] minimax_value(Board state) {
+	public static int minimax_value(Board state, int level) {
 		num_explored++;
-		int[] ret = new int[2]; // index 0 = minimax value
-								// index 1 = capture value
-		
+
 		if (state.isFinished()) {		// terminal state
-			ret[0] = state.getScoreDiff();
-			ret[1] = 0;
-			
-			return ret;
+			return state.getScoreDiff();
 		}
 
 		// detect symmetry
 		Board sym = state.isRotateSymmetric(table);
 			
 		if (sym != null) {
-			// TODO: FIX THIS
-			int possible_capt = table.getEntry(sym);
-			
-			ret[0] = state.getScoreDiff() + 2*possible_capt - state.getNumUncaptured();
-			ret[1] = possible_capt;
-			
-			return ret;
+			return table.getMinimax(sym.getEdges());
 		}
 
-		// go through each child of this state
-		int[] minimax = null;
-		int capt_score = 0;
-
-		int curr_ch_score;
-		int[] child_minimax;
-		// System.out.println("GOT FIRST MINIMAX CHILD");
+		
+		Integer minimax_value = null;
+		int child_minimax;
 
 		// search through each child state with minimax
 		Board child = state.deepCopy(true);
@@ -99,7 +70,6 @@ public class Main {
 				if (!child.occupyEdge(m)) {
 					continue;
 				}
-				
 
 				// if no cells were captured, then give turn to
 				// the other player
@@ -113,59 +83,40 @@ public class Main {
 					sym_childs.addAll(child.getSymmetricBoards());
 
 					// TODO: present checks
-					curr_ch_score = child.getMyScore() - state.getMyScore();
-					child_minimax = minimax_value(child);
+					child_minimax = minimax_value(child, level + 1);
 
-					if (state.getCurrTurn() == myColor) {
-						if (minimax == null ||
-							child_minimax[0] > minimax[0]) {
+					if (state.getCurrTurn() == myColor) {		// our turn => maximize score
+						if (minimax_value == null ||
+							child_minimax > minimax_value) {
 							
-							minimax = child_minimax;
-							capt_score = curr_ch_score;
+							minimax_value = child_minimax;
 						}
-					} else {
-						if (minimax == null ||
-							child_minimax[0] < minimax[0]) {
+					} else {								// enemy turn => minimize score
+						if (minimax_value == null ||
+								child_minimax < minimax_value) {
 							
-							minimax = child_minimax;
-							capt_score = curr_ch_score;
+							minimax_value = child_minimax;
 						}
 					}
-					
-
 				}
 
 				// create another child
 				child = state.deepCopy(true);
 			}
 		}
-
-		/*
-		 * If current turn is self:
-		 * 		minimax[1] has the maximum optimal number of cells that
-		 * 		can be captured by self, STARTING from the child state
-		 * 		with this minimax value.
-		 * 
-		 * 		capt_score counts the number of cells captured by self,
-		 *		due to a move BEFORE reaching to the child state.
-		 * 
-		 *  	Thus the total number of cells captured FROM this state
-		 *  	is minimax[1] + capt_score.
-		 *  
-		 *  	If the child state was a terminal state (ie. this state
-		 *  	has only one open edge left), then the child state returns
-		 *  	minimax[1] = 0.
-		 *
-		 */
-		minimax[1] += capt_score;
-
-		// System.out.println("\nSTATE END: " + state.toString() + "\t\t" + state.getScore() + "\t\t" + minimax_value + "\t\t" + state.getCurrTurn());
-		table.storeEntry(state, minimax[1]);
+		
+		table.storeMinimax(state, minimax_value);
+		
+		if (level < static_lowest_level || (level == static_lowest_level && minimax_value > static_minimax_best)) {
+			static_lowest_level = level;
+			static_minimax_best = minimax_value;
+		}
 		
 		if (table.getSize() % 10000 == 0) {
-			System.out.println(table.getSize() + "\t\t" + num_explored + "\t\t" + (double)num_explored/table.getSize());
+			System.out.println(table.getSize() + "\t\t" + num_explored + "\t\t" + 
+		(double)num_explored/table.getSize() + "\t\t" + static_lowest_level + "  " + static_minimax_best);
 		}
 
-		return minimax;
+		return minimax_value;
 	}
 }
