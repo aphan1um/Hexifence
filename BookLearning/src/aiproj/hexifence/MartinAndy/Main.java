@@ -1,11 +1,7 @@
 package aiproj.hexifence.MartinAndy;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 
-import aiproj.hexifence.Move;
 import aiproj.hexifence.Piece;
 
 public class Main {
@@ -27,9 +23,9 @@ public class Main {
 		
 		System.out.println(b.toString());
 		
-		List<ConnectedComponent> c = ConnectedComponent.detectSCC(b);
+		List<ConnectedComponent> c = ConnectedComponent.detectSCC(b, false);
 		
-		System.out.println(c.get(1).findCellWithLeastOpen());
+		System.out.println(c.get(1).getCellWithLeastOpen());
 		System.out.println(c.size());
 
 		GradientDescentLearn gdl = new GradientDescentLearn(DIM);

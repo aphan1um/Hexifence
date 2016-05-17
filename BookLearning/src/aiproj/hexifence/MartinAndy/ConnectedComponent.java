@@ -6,59 +6,90 @@ import java.util.Queue;
 import aiproj.hexifence.Piece;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.awt.Point;
 
-public class ConnectedComponent {
+public class ConnectedComponent implements Comparable<ConnectedComponent> {
 	public List<Point> cells;
 	public Board board;
+	private int[] chain_data;
 	
 	public ConnectedComponent(Board board) {
 		this.cells = new ArrayList<Point>();
 		this.board = board;
+		this.chain_data = null;
 	}
 	
-	/** Return the cell in a connected component with the least
-	 * amount of open edges.
+	/** Prepare/return information about the connected component.
 	 */
-	public int findCellWithLeastOpen() {
+	private int[] prepare_data() {
+		// if the info about chain has been calculated previously
+		if (chain_data != null)
+			return chain_data;
+		
 		int min_count = 6;
+		int num_open = 0;	// number of cells in the component,
+							// with only one open edge left
 		
 		for (Point p : cells) {
-			int count = 0;
-			
-			for (int[] dif : Board.EDGE_DIFF) {
-				if (board.getEdge(p.x + dif[0], p.y + dif[1]) == Piece.EMPTY) {
-					count++;
-				}
-			}
-			
+			int count = board.getNumOpen(p.x, p.y);
 			min_count = Math.min(min_count, count);
+			
+			if (count == 1)
+				num_open++;
 		}
 		
-		return min_count;
+		int[] ret = new int[2];
+		ret[0] = min_count;
+		ret[1] = num_open;
+		
+		// save data calculated into chain_data, so that
+		// we do not need to calculate again
+		chain_data = ret;
+		
+		return ret;
 	}
 	
 	public boolean isChain() {
-		return findCellWithLeastOpen() == 1;
+		return prepare_data()[0] == 1;
 	}
 	
 	public boolean isPotentialChain() {
-		return findCellWithLeastOpen() == 2;
+		return prepare_data()[0] == 2;
 	}
 	
+	public int getCellWithLeastOpen() {
+		return prepare_data()[0];
+	}
+	
+	/** Check if the chain is half-open (one end of the chain's
+	 * edge is open). If it returns <code>false</code>, then
+	 * the chain has both ends closed.
+	 * <p>
+	 * Before calling this, you should call <code>isChain()</code>
+	 * to check if this component is really a chain.
+	 * </p>
+	 */
+	public boolean isHalfOpen() {
+		return prepare_data()[0] == 1;
+	}
+	
+	/** Get how many cells are in this connected component.
+	 */
 	public int getLength() {
 		return cells.size();
 	}
 	
-	/** Returns a list of strongly connected components, where
-	 * the cell's represent the vertices.
+	/** Returns a list of (strongly) connected components,
+	 * where the cell's represent the vertices.
 	 * <p>
 	 * An edge exists between the two vertices, if the edge
 	 * between them is open/not occupied.
 	 * </p>
+	 * @param If the list of components should only contain chains.
 	 */
-	public static List<ConnectedComponent> detectSCC(Board b) {
+	public static List<ConnectedComponent> detectSCC(Board b, boolean chainsOnly) {
 		List<ConnectedComponent> ret = new ArrayList<ConnectedComponent>();
 		List<Point> unexplored;
 		
@@ -103,9 +134,24 @@ public class ConnectedComponent {
 				}
 			}
 
-			ret.add(c);
+			// if chainsOnly is true, then check if current
+			// component is a chain
+			if (!chainsOnly || c.isChain()) {
+				ret.add(c);
+			}
 		}
 		
+		// sort the list, based on length
+		Collections.sort(ret);
+		
 		return ret;
+	}
+
+	@Override
+	public int compareTo(ConnectedComponent arg0) {
+		if (this.getLength() < arg0.getLength())
+			return -1;
+		else
+			return 1;
 	}
 }

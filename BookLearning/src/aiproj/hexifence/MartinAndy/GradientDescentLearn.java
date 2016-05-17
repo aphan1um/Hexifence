@@ -142,4 +142,5 @@ public class GradientDescentLearn {
 
 		return minimax;
 	}
+
 }

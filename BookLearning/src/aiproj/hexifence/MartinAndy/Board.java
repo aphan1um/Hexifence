@@ -226,6 +226,9 @@ public class Board {
 	/** Get the number of edges open around a cell, centred
 	 * at (r, c). This includes 'inner edges' and
 	 * 'outer edges'
+	 * @return Number of open edges around the cell centre.
+	 * If (r, c) is not a centre of cell, then it returns
+	 * <code>-1</code> instead.
 	 */
 	public int getNumOpen(int r, int c) {
 		// return negative value if (r,c) does not represent
