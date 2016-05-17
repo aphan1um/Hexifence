@@ -184,6 +184,10 @@ public class Board {
 		return occupyEdge(move.Row, move.Col, move.P);
 	}
 	
+	public boolean occupyEdge(int r, int c) {
+		return occupyEdge(r, c, curr_turn);
+	}
+	
 	/** Indicate to the cell that one of its edges has been
 	 * occupied/closed.
 	 * 
