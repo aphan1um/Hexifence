@@ -165,46 +165,4 @@ public class GradientLearn {
 		
 		return minimax;
 	}
-
-	private void preprocess_step(Board b) {
-		// ensure preprocess step happens at our turn
-		if (b.getCurrTurn() != b.getMyColor())
-			return;
-		
-		ChainFinder ch_finder = new ChainFinder(b);
-		
-		// if there chains, then there is nothing to do
-		if (ch_finder.chains.size() == 0)
-			return;
-
-		// find largest chain
-		Chain best_c = ch_finder.chains.get(0);
-		for (Chain c : ch_finder.chains) {
-			if (c.cells.size() > best_c.cells.size())
-				best_c = c;
-		}
-		
-		// find smallest 'potential chain'
-		Chain smallest_pc = null;
-		if (!ch_finder.potentials.isEmpty()) {
-			smallest_pc = ch_finder.potentials.get(0);
-			
-			for (Chain c : ch_finder.potentials) {
-				if (c.cells.size() < smallest_pc.cells.size())
-					best_c = c;
-			}
-		}
-		
-		if (!best_c.isClosed) {		// largest chain is half open
-			
-			// potential chain empty => use minimax with eval
-			if (smallest_pc == null) {
-				
-			}
-			
-		} else {
-			// closed chain
-			
-		}
-	}
 }

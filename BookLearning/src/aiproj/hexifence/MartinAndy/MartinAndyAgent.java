@@ -6,13 +6,15 @@ import aiproj.hexifence.Move;
 import aiproj.hexifence.Piece;
 import aiproj.hexifence.Player;
 
-// TODO: Rename this class (a mix of names?)
+
 public class MartinAndyAgent implements Player, Piece {
 	private Board board;
 	private boolean receivedIllegal = false;
 	
 	/** Cutoff depth for minimax and a-b search */
 	private static final int CUTOFF_DEPTH = 3;
+	
+	private Move next_move = null;
 	
 	@Override
 	public int init(int n, int p) {
@@ -37,8 +39,13 @@ public class MartinAndyAgent implements Player, Piece {
 			board.setCurrTurn(board.getMyColor());
 		}
 
+		// reset next_move, and perform minimax
+		// search
+		next_move = null;
+		// TODO: some large values for alpha & beta
+		minimax(board, -1000, 1000, 0, true);
 		
-		return null;
+		return next_move;
 	}
 
 	@Override
@@ -96,14 +103,7 @@ public class MartinAndyAgent implements Player, Piece {
 		output.print(board.toString());
 	}
 	
-	public Move minimax() {
-		// TODO: look at child states, apply a-b pruning
-		// and choose best child state/move
-		
-		return null;
-	}
-	
-	/** Perform an alpha-beta pruning search.
+	/** Perform minimax search with alpha-beta pruning.
 	 * 
 	 * @param a Represents the 'alpha' in the search.
 	 * @param b Represents 'beta'
@@ -112,7 +112,7 @@ public class MartinAndyAgent implements Player, Piece {
 	 * Board <code>state</code>, and vice-versa.
 	 * @return
 	 */
-	private double alpha_beta(Board state, double a, double b,
+	private double minimax(Board state, double a, double b,
 			int depth, boolean max) {
 		
 		// use utility function if we reach to terminal state
@@ -132,7 +132,7 @@ public class MartinAndyAgent implements Player, Piece {
 				// create a move
 				Move m = new Move();
 				m.Row = r;
-				m.Col = c + Math.max(0, r - (2 * child.getDim() - 1));
+				m.Col = c + Math.max(0, r - (2*child.getDim() - 1));
 				m.P = child.getCurrTurn();
 
 				// if the edge has been occupied (or is cell centre)
@@ -142,12 +142,22 @@ public class MartinAndyAgent implements Player, Piece {
 				}
 				
 				if (max) {
-					a = Math.max(a, alpha_beta(child, a, b, depth + 1, !max));
+					double result = minimax(child, a, b, depth + 1, !max);
+					
+					if (result > a) {
+						a = result;
+						
+						// store best move, if we are exploring from
+						// current state
+						if (depth == 0) {
+							next_move = m;
+						}
+					}
 					
 					if (a >= b)
 						return b;
 				} else {
-					b = Math.min(b, alpha_beta(child, a, b, depth + 1, !max));
+					b = Math.min(b, minimax(child, a, b, depth + 1, !max));
 					
 					if (b <= a)
 						return a;
@@ -162,6 +172,30 @@ public class MartinAndyAgent implements Player, Piece {
 			return b;
 		}
 	}
+	
+	/*
+	private void preprocess_step(Board b) {
+		// ensure preprocess step happens at our turn
+		if (b.getCurrTurn() != b.getMyColor())
+			return;
+		
+		ChainFinder ch_finder = new ChainFinder(b);
+		
+		// if there chains, then there is nothing to do
+		if (ch_finder.chains.size() == 0)
+			return;
+
+		// find largest chain
+		Chain best_c = ch_finder.chains.get(0);
+		for (Chain c : ch_finder.chains) {
+			if (c.cells.size() > best_c.cells.size())
+				best_c = c;
+		}
+		
+		// get the chain
+		
+	}
+	*/
 	
 	/** Our evaluation function to use for non-terminal states. */
 	private double eval() {
