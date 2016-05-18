@@ -9,15 +9,15 @@ import aiproj.hexifence.Piece;
 public class LearningTest {
 	private static final int TWO_DIM = 2;
 	private static final int THREE_DIM = 3;
-	private static final int SEED = 54321;
+	private static final int SEED = 54322;
 	
-	private static final int NUM_SAMPLES = 100000;
+	private static final int NUM_SAMPLES = 200000;
 	private static final double LEARNING_RATE = 0.1;
+	
+	private static double W_CELL = 1, W_CHAIN = 1, W_SCORE = 1;
 	
 	public static void main(String[] args) {
 		Random rand = new Random(SEED);
-		
-		double W_CELL = 0, W_CHAIN = 0;
 		
 		for (int i = 0; i < NUM_SAMPLES; i++) {			
 			int dim = rand.nextBoolean() ? TWO_DIM : THREE_DIM;
@@ -54,14 +54,14 @@ public class LearningTest {
 			int[] ret = utilityCalc.minimax_value(board);
 			int scoreMargin = ret[0];
 			
-			double test_eval = getEval(board, chains,
-					W_CELL, W_CHAIN);
+			double test_eval = getEval(board, chains);
 			
 			double difference = test_eval - scoreMargin;
 			
 			// Weight update.			
 			W_CELL = W_CELL - LEARNING_RATE* difference *f_getCell(board);
 			W_CHAIN = W_CHAIN - LEARNING_RATE* difference *f_getChain(board, chains);
+			W_SCORE = W_SCORE - LEARNING_RATE* difference *f_getScore(board);
 			
 			if (Double.isNaN(W_CELL) || Double.isNaN(W_CHAIN)) {
 				System.out.println("ERROR " + i + " " + f_getCell(board));
@@ -70,19 +70,30 @@ public class LearningTest {
 			
 			System.out.println("Cell feature weight: " + W_CELL);
 			System.out.println("Chain feature weight: " + W_CHAIN);
+			
+			test_eval = getEval(board, chains);
+			
+			difference = test_eval - scoreMargin;
+			
+			System.out.println("new test eval: " + test_eval + " " + ret[0]);
 		}		
 	}
 
-	public static double getEval(Board board, List<Chain> chains,
-			double cellWeight, double chainWeight) {
+	public static double getEval(Board board, List<Chain> chains) {
 		// System.out.println("Dim " + board.getDim() + " Cell Feature " + cellFeature + " Chain Feature " + chainFeature + " Utility: " + scoreMargin);
 		
-		return cellWeight * f_getCell(board) + 
-			   chainWeight * f_getChain(board, chains);
+		return W_CELL * f_getCell(board) + 
+			   W_CHAIN * f_getChain(board, chains) +
+			   W_SCORE * f_getScore(board);
 		
 	}
 	
-	public static int f_getCell(Board board) {
+	public static int f_getScore(Board board) {
+		return board.getMyScore();
+	}
+	
+	// TODO: Made this zero... but it stops diverging?
+	public static double f_getCell(Board board) {
 		// Get the number of cells with 5 edges filled in.
 		List<Point> cells = board.getUncapturedCells();
 		
@@ -93,7 +104,8 @@ public class LearningTest {
 			}
 		}
 
-		return cellFeature;
+		// return (double)cellFeature/cells.size();
+		return 0;
 	}
 	
 	public static int f_getChain(Board board, List<Chain> chains) {
