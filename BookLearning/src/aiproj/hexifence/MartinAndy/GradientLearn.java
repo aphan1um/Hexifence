@@ -99,13 +99,6 @@ public class GradientLearn {
 					if (!child.occupyEdge(m)) {
 						continue;
 					}
-					
-
-					// if no cells were captured, then give turn to
-					// the other player
-					if (state.getNumUncaptured() == child.getNumUncaptured()) {
-						child.switchTurns();
-					}
 
 					// if the child created is not symmetric to a
 					// previous child that was made before

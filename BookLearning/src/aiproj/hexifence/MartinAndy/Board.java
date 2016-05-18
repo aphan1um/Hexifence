@@ -121,6 +121,11 @@ public class Board {
 	}
 	
 	/** Make an edge closed, caused by some player.
+	 * <p>
+	 * If a player does not a cell, as a result of calling
+	 * this function, then the current turn for this board is
+	 * switched.
+	 * </p>
 	 * @param r Row of edge.
 	 * @param c Column of edge.
 	 * @param color The player who occupied this edge.
@@ -153,36 +158,46 @@ public class Board {
 		setEdge(r, c, color);
 		this.num_edges_left--;
 		
-		// now tell cells with this edge that the edge is now 'closed'
+		// keep track if any cell was captured
+		boolean captured = false;
+		
+		// now tell cells with this edge that the edge is now 'closed',
+		// based on its position
 		if (r % 2 == 0) { 	// r even => row does not contain cell centres
 			
 			// check if this edge is connected to cell below
 			if (r + 1 < 4*dim - 1) {
 				if (c % 2 == 0) {
-					decrementCell(r + 1, c + 1, color);
+					captured |= decrementCell(r + 1, c + 1, color);
 				} else {
-					decrementCell(r + 1, c, color);
+					captured |= decrementCell(r + 1, c, color);
 				}
 			}
 			
 			// now check above
 			if (r - 1 > 0) {
 				if (c % 2 == 0) {
-					decrementCell(r - 1, c - 1, color);
+					captured |= decrementCell(r - 1, c - 1, color);
 				} else {
-					decrementCell(r - 1, c, color);
+					captured |= decrementCell(r - 1, c, color);
 				}
 			}
 			
 			
 		} else {		// r odd => row contains cell centres
 			if (c - 1 >= 0) {
-				decrementCell(r, c - 1, color);
+				captured |= decrementCell(r, c - 1, color);
 			}
 			
 			if (c + 1 <= getMaxColumn(r, dim)) {
-				decrementCell(r, c + 1, color);
+				captured |= decrementCell(r, c + 1, color);
 			}
+		}
+		
+		// if no cell was captured, then switch turns;
+		// otherwise keep
+		if (!captured) {
+			switchTurns();
 		}
 		
 		return true;
@@ -208,14 +223,16 @@ public class Board {
 	
 	/** Indicate to the cell that one of its edges has been
 	 * occupied/closed.
-	 * 
+	 * <p>
 	 * If the coordinate (r, c) is not "on or in the game
-	 * board", then no action is taken.
+	 * board", then <code>false</code> is returned.
+	 * </p>
+	 * @return <code>true</code> if a cell got captured.
 	 */
-	private void decrementCell(int r, int c, int color) {
+	private boolean decrementCell(int r, int c, int color) {
 		// do nothing if out or range
 		if (!isCentreCell(r, c)) {
-			return;
+			return false;
 		}
 
 		// all of cell's edges occupied  ==>  cell captured
@@ -231,7 +248,11 @@ public class Board {
 
 			// decrement amount of uncaptured cells
 			num_uncaptured--;
+			
+			return true;
 		}
+
+		return false;
 	}
 	
 	/** Check if the coordinate (r, c) actually represents the
@@ -344,7 +365,7 @@ public class Board {
 	
 	/** Switch the turn to the next player.
 	 */
-	public void switchTurns() {
+	private void switchTurns() {
 		curr_turn = (curr_turn == Piece.RED) ?
 				Piece.BLUE : Piece.RED;
 	}

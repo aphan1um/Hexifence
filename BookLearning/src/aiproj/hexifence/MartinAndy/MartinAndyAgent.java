@@ -11,6 +11,9 @@ public class MartinAndyAgent implements Player, Piece {
 	private Board board;
 	private boolean receivedIllegal = false;
 	
+	/** Cutoff depth for minimax and a-b search */
+	private static final int CUTOFF_DEPTH = 3;
+	
 	@Override
 	public int init(int n, int p) {
 		// check we received correct parameters
@@ -62,9 +65,6 @@ public class MartinAndyAgent implements Player, Piece {
 			return 1;
 		}
 		
-		// if not, then switch turn to us
-		board.switchTurns();
-		
 		return 0;
 	}
 
@@ -95,5 +95,76 @@ public class MartinAndyAgent implements Player, Piece {
 	public void printBoard(PrintStream output) {
 		output.print(board.toString());
 	}
+	
+	public Move minimax() {
+		// TODO: look at child states, apply a-b pruning
+		// and choose best child state/move
+		
+		return null;
+	}
+	
+	/** Perform an alpha-beta pruning search.
+	 * 
+	 * @param a Represents the 'alpha' in the search.
+	 * @param b Represents 'beta'
+	 * @param depth Depth of search tree, from current state.
+	 * @param max If we're looking for maximum value from the
+	 * Board <code>state</code>, and vice-versa.
+	 * @return
+	 */
+	private double alpha_beta(Board state, double a, double b,
+			int depth, boolean max) {
+		
+		// use utility function if we reach to terminal state
+		if (state.isFinished()) {		
+			return state.getScoreDiff();
+		} else if (depth >= CUTOFF_DEPTH) {
+			return eval();
+		}
+		
+		// create a copy of board, to use as a child state
+		Board child = board.deepCopy(true);
 
+		// naively look through each possible move, based on
+		// current board state
+		for (int r = 0; r < child.getEdges().length; r++) {
+			for (int c = 0; c < child.getEdges()[r].length; c++) {
+				// create a move
+				Move m = new Move();
+				m.Row = r;
+				m.Col = c + Math.max(0, r - (2 * child.getDim() - 1));
+				m.P = child.getCurrTurn();
+
+				// if the edge has been occupied (or is cell centre)
+				// then move onto the next possible move
+				if (!child.occupyEdge(m)) {
+					continue;
+				}
+				
+				if (max) {
+					a = Math.max(a, alpha_beta(child, a, b, depth + 1, !max));
+					
+					if (a >= b)
+						return b;
+				} else {
+					b = Math.min(b, alpha_beta(child, a, b, depth + 1, !max));
+					
+					if (b <= a)
+						return a;
+				}
+				
+			}
+		}
+		
+		if (max) {
+			return a;
+		} else {
+			return b;
+		}
+	}
+	
+	/** Our evaluation function to use for non-terminal states. */
+	private double eval() {
+		return 0;
+	}
 }
