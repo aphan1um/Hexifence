@@ -1,4 +1,12 @@
+/* 
+ * COMP30024 - Project B
+ * Andy Phan (aphan1) and Martin Cheong (cheongm)
+ * 
+ */
+
 package aiproj.hexifence.MartinAndy;
+
+
 
 import java.awt.Point;
 import java.util.ArrayList;
