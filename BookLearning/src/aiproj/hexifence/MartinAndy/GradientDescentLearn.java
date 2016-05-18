@@ -18,8 +18,8 @@ public class GradientDescentLearn {
 		this.table = new TranspositionTable(dim);
 	}
 	
-	public int getInitMinimax() {
-		int[] result = minimax_value(new Board(dim, Main.playerStart));
+	public int getInitMinimax(Board state) {
+		int[] result = minimax_value(state);
 		
 		return result[0];
 	}

@@ -341,6 +341,22 @@ public class Board {
 		return edges[r][c - Math.max(0, r - (2*dim - 1))];
 	}
 	
+	public void forceSetEdge(int r, int c) {
+		if (isOutOfRange(r, c)) {
+			return;
+		}
+		
+		edges[r][c - Math.max(0, r - (2*dim - 1))] = curr_turn;
+	}
+	
+	public void forceRevertEdge(int r, int c) {
+		if (isOutOfRange(r, c)) {
+			return;
+		}
+		
+		edges[r][c - Math.max(0, r - (2*dim - 1))] = Piece.EMPTY;
+	}
+	
 	private void setEdge(int r, int c, int value) {
 		edges[r][c - Math.max(0, r - (2*dim - 1))] = value;
 	}
