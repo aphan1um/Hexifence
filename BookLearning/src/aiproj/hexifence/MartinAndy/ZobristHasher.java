@@ -5,7 +5,8 @@ import java.util.Random;
 import aiproj.hexifence.Piece;
 
 public class ZobristHasher {
-	private static final int SEED = 12345; // We can randomise the seed if needed.
+	private static final int SEED = 12345; 
+									// We can randomise the seed if needed.
 	
 	private long[] elementValueTable;
 	
@@ -13,7 +14,8 @@ public class ZobristHasher {
 		// Total number of edges for a game of dimension N.
 		int totalEdges = 3*dimension * (3*dimension - 1);
 		
-		elementValueTable = new long[totalEdges]; // Indexed left-to-right and top-to-bottom.
+		elementValueTable = new long[totalEdges];
+								// Indexed left-to-right and top-to-bottom.
 		
 		Random rand = new Random(SEED);
 		
@@ -29,6 +31,8 @@ public class ZobristHasher {
 		
 		for (int i = 0; i < edges.length; i++) {
 			for (int j = 0; j < edges[i].length; j++) {
+				// if the location (i, j) is the centre of some
+				// cell, and not a valid edge
 				if (i % 2 == 1 && j % 2 == 1) {
 					continue;
 				}

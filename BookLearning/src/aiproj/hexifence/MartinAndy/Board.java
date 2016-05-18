@@ -104,7 +104,8 @@ public class Board {
 		} else {
 			// initialise the 2D edge array
 			for (int r = 0; r < 4*dim - 1; r++) {
-				copy.edges[r] = new int[2*dim + r - 2*Math.max(0, r - (2*dim - 1))];
+				copy.edges[r] = 
+						new int[2*dim + r - 2*Math.max(0, r - (2*dim - 1))];
 				Arrays.fill(copy.edges[r], Piece.EMPTY);
 			}
 		}
@@ -547,8 +548,8 @@ public class Board {
 					continue;
 				}
 
-				int[] rotated_edge = rotateEdge(i, j, dim, numRotate, reflect);
-				b2.setEdge(rotated_edge[0], rotated_edge[1], getEdge(i, j));
+				int[] rotate_edge = rotateEdge(i, j, dim, numRotate, reflect);
+				b2.setEdge(rotate_edge[0], rotate_edge[1], getEdge(i, j));
 			}
 		}
 

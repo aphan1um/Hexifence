@@ -5,7 +5,8 @@ import java.util.HashMap;
 
 public class TranspositionTable {
 	private ZobristHasher hasher;
-	private HashMap<Long, Integer> table; // Hash map of (key, minimax value) pairs.
+	private HashMap<Long, Integer> table; 
+									// Hash map of (key, minimax value) pairs.
 
 	public TranspositionTable(int dimension) {
 		hasher = new ZobristHasher(dimension);
@@ -29,19 +30,13 @@ public class TranspositionTable {
 			try {
 				throw new Exception();
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 				System.exit(0);
 			}
 		}
 
-		// System.out.println("STORED: " + board.toString() + "\t\t" + hashKey + "\t\t" + board.getCurrTurn() + "\t" + value);
-		
 		// if we get a collision
 		if (!table.containsKey(hashKey)) {
-			// TODO: For some strange reason, the opposing side causes many collisions,
-			// but the main player does not?
-
 			int store_value;
 			
 			// our agent's turn
