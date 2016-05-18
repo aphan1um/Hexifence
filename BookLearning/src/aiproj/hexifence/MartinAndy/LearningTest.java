@@ -9,25 +9,28 @@ public class LearningTest {
 	private static final int TWO_DIM = 2;
 	private static final int THREE_DIM = 3;
 	private static final int SEED = 9834;
-	
-	private static final int DIM = THREE_DIM;
-	
+
+	/** Number of samples to use in our gradient descent learning */
 	private static final int NUM_SAMPLES = 100000;
+	/** Parameter for learning rate (how fast weights change) */
 	private static final double LEARNING_RATE = 0.1;
 	
+	// weights for our features
 	private static double W_CELL = 1, W_CHAIN = 1, W_SCORE = 1, W_SCORE_ENEMY = 1,
 						  W_DUMMY = 1;
 	
-	private static int MY_COLOR = Piece.RED;
+	// our player color
+	private static final int MY_COLOR = Piece.RED;
 	
 	public static void main(String[] args) {
+		System.out.println("First test");
 		GradientLearn utilityCalc = new GradientLearn(2, NUM_SAMPLES);
-		utilityCalc.minimax_value(new Board(2, MY_COLOR));
+		utilityCalc.minimax_value(new Board(2, MY_COLOR, Piece.BLUE));
 		doTest(utilityCalc);
 
 		System.out.println("Second test");
 		utilityCalc = new GradientLearn(3, NUM_SAMPLES);
-		utilityCalc.minimax_value(new Board(3, MY_COLOR));
+		utilityCalc.minimax_value(new Board(3, MY_COLOR, Piece.BLUE));
 		doTest(utilityCalc);
 
 	}
@@ -92,6 +95,7 @@ public class LearningTest {
 		return 0;
 	}
 	
+	// TODO: a peculiar function
 	public static double f_getEnemyScore(Board board) {
 		if (board.getNumEdgesLeft() % 2 == 0 && board.getCurrTurn() == board.getMyColor())
 			return 1;
