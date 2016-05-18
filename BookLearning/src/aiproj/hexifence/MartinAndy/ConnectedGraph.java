@@ -13,10 +13,9 @@ import java.util.LinkedList;
 import java.awt.Point;
 
 public class ConnectedGraph {
-	public List<Point[]> components;
+	public List<List<Point>> components;
 	public List<Chain> chains;
 	public Board board;
-	private Boolean potential_chain;
 	
 	/*
 	private boolean possiblePotentChain() {
@@ -53,7 +52,7 @@ public class ConnectedGraph {
 	 * of connected components, excluding chains in the
 	 * connected component.
 	 */
-	public List<Point[]> getComponents() {
+	public List<List<Point>> getComponents() {
 		return components;
 	}
 	
@@ -69,39 +68,68 @@ public class ConnectedGraph {
 	 * between the cell's being the 'edges of the graph'.
 	 */
 	public ConnectedGraph(Board b) {
-		this.components = new ArrayList<Point[]>();
+		this.components = new ArrayList<List<Point>>();
 		this.board = b;
-		this.potential_chain = null;
 		this.chains = new ArrayList<Chain>();
 
-		// deep copy of the original board; we will use this
-		// to find chains, by modifying the cloned board over time
-		Board bclone = b.deepCopy(true);
-		
-		Queue<Point> cell_open = new LinkedList<Point>();
-		List<Point> unexplored = bclone.getUncapturedCells();
-		
-		for (Point pt : unexplored) {
-			if (bclone.getNumOpen(pt.x, pt.y) == 1) {
-				cell_open.add(pt);
-			}
-		}
-
-		chains = getChains(cell_open, bclone);
-		/*
-		for (Chain c : p) {
-			for (Point a1 : c.cells) {
-				System.out.println(a1.toString());
-			}
-			
-			System.out.println(c.isClosed);
-		}
-		
-		System.out.println("size = " + p.size());
-		*/
+		findComponents();
 	}
 	
-	private List<Chain> getChains(Queue<Point> cell_open, Board bclone) {
+	/** Find all connected components, and its chains for a
+	 * given game board.
+	 */
+	private void findComponents() {
+		// get list of cells which haven't been captured
+		List<Point> unexplored = board.getUncapturedCells();
+		
+		while (!unexplored.isEmpty()) {
+			Point p = unexplored.remove(0);
+			Queue<Point> explore_lst = new LinkedList<Point>();
+
+			List<Point> component = new ArrayList<Point>();
+			Queue<Point> cell_open = new LinkedList<Point>();
+			
+			explore_lst.add(p);
+			unexplored.remove(p);
+			
+			// search for cells in a connected component
+			while (!explore_lst.isEmpty()) {
+				p = explore_lst.poll();
+				component.add(p);
+
+				// if current cell has only one open edge left
+				if (board.getNumOpen(p.x, p.y) == 1) {
+					cell_open.add(p);
+				}
+				
+				for (int[] dif : Board.EDGE_DIFF) {
+					Point adj_c = new Point(p.x + 2*dif[0], p.y + 2*dif[1]);
+					Point adj_ed = new Point(p.x + dif[0], p.y + dif[1]);
+					
+					if (!board.isCentreCell(adj_c.x, adj_c.y) ||
+						board.isOutOfRange(adj_ed.x, adj_ed.y) ||
+						board.getEdge(adj_ed.x, adj_ed.y) != Piece.EMPTY ||
+						!unexplored.contains(adj_c)) {
+						continue;
+					}
+					
+					explore_lst.add(adj_c);
+
+					// mark current cell as explored
+					unexplored.remove(adj_c);
+				}
+			}
+			
+			if (!cell_open.isEmpty()) {
+				chains.addAll(getChains(cell_open, board.deepCopy(true), component));
+			}
+			
+			components.add(component);
+		}
+	}
+	
+	private static List<Chain> getChains(Queue<Point> cell_open, Board bclone,
+			List<Point> component) {
 		
 		HashMap<Point, Chain> wait_lst = 
 				new HashMap<Point, Chain>();
@@ -109,13 +137,10 @@ public class ConnectedGraph {
 		List<Chain> final_chains = new ArrayList<Chain>();
 		
 		while (!cell_open.isEmpty()) {
-			System.out.println(cell_open.peek());
-			
 			Chain new_chain = new Chain();
 			Point chain_stop = createChain(cell_open, bclone, new_chain);
 		
-			System.out.println("new chain: " + new_chain.cells + "\t\t stop: " + chain_stop);
-			
+
 			if (new_chain.cells.isEmpty()) {
 				continue;
 			}
@@ -146,16 +171,20 @@ public class ConnectedGraph {
 		}
 
 		
-		// remaining chains
+		// remaining chains that weren't able to be connected
 		for (Entry<Point, Chain> entry : wait_lst.entrySet()) {
 			entry.getValue().isClosed = false;
 			final_chains.add(entry.getValue());
 		}
 		
+		for (Chain c : final_chains) {
+			component.removeAll(c.cells);
+		}
+		
 		return final_chains;
 	}
 	
-	private Point createChain(Queue<Point> cell_open,
+	private static Point createChain(Queue<Point> cell_open,
 			Board bclone, Chain chain) {
 		
 		Point start = cell_open.poll();
@@ -163,11 +192,13 @@ public class ConnectedGraph {
 		return exploreChains(start, bclone, cell_open, chain);
 	}
 
-	private Point exploreChains(Point p, Board bclone,
+	private static Point exploreChains(Point p, Board bclone,
 			Queue<Point> cell_open,
 			Chain chain) {
 
 		Queue<Point> queue = new LinkedList<Point>();
+		
+		// list of cells already explored, when finding a chain
 		List<Point> explored = new ArrayList<Point>();
 		
 		// add start cell to list (should be a cell with
@@ -176,15 +207,24 @@ public class ConnectedGraph {
 
 		while (!queue.isEmpty()) {
 			Point curr_p = queue.poll();
-			int curr_p_open = bclone.getNumOpen(curr_p.x, curr_p.y);
-			int count = 0;
 			
+			// number of edges open for curr_p
+			int curr_p_open = bclone.getNumOpen(curr_p.x, curr_p.y);
+			
+			// if we reach a dead end, then the chain ends there
 			if (curr_p_open == 0) {
 				if (curr_p != p) {
 					chain.cells.add(curr_p);
 				}
 				
 				return null;
+			
+			// if the current cell being explored has more than open
+			// edge, then we cannot capture it yet; we wait until
+			// hopefully by capturing another cell with one edge left,
+			// that curr_p will also lose an edge
+			} else if (curr_p_open > 1) {
+				return curr_p;
 			}
 
 			for (int[] dif : Board.EDGE_DIFF) {
@@ -211,45 +251,29 @@ public class ConnectedGraph {
 
 				explored.add(adj_c);
 
-				// current cell has only one edge left, and we found
-				// that last edge
-				if (curr_p_open == 1) {
-					bclone.occupyEdge(adj_ed.x, adj_ed.y);
+				// if we get here, then we found the last edge of the
+				// current cell; we move to the next adjacent cell
 
-					queue.offer(adj_c);
-					chain.cells.add(curr_p);
-					
-					// remove the cell with only one edge left into
-					// cell_open (if it is in there)
-					cell_open.remove(p);
+				bclone.occupyEdge(adj_ed.x, adj_ed.y);
 
-					// if edge is at the end of game board, then there
-					// is no point looking further
-					if (bclone.isOuterEdge(adj_ed.x, adj_ed.y)) {
-						chain.isClosed = false;
-						return null;
-					}
-					
-					break;
+				queue.offer(adj_c);
+				chain.cells.add(curr_p);
+
+				// remove the cell with only one edge left into
+				// cell_open (if it is in there)
+				cell_open.remove(p);
+
+				// if edge is at the end of game board, then there
+				// is no point looking further
+				if (bclone.isOuterEdge(adj_ed.x, adj_ed.y)) {
+					chain.isClosed = false;
+					return null;
 				}
-				
-				count++;
-			}
-			
-			/*
-			 * if it happens that there more than one open edge at current 
-			 * cell; in that case, return curr_p, and hold finishing the
-			 * chain until curr_p has only one free edge left
-			 * 
-			 * if this never occurs, then the chain ends before curr_p
-			 */
-			if (count > 0) {
-				return curr_p;
 			}
 		}
 		
-		// we get here if there no edges around current cell to
-		// traverse through
+		// we get here if there no edges around current
+		// cell to traverse through
 		return null;
 	}
 }
