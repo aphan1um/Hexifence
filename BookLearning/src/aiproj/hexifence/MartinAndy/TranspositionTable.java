@@ -45,7 +45,7 @@ public class TranspositionTable {
 			int store_value;
 			
 			// our agent's turn
-			if (board.getCurrTurn() == Main.myColor) {
+			if (board.getCurrTurn() == board.getMyColor()) {
 				store_value =  value;
 			} else {
 				store_value = board.getNumUncaptured() - value;
@@ -71,8 +71,9 @@ public class TranspositionTable {
 	public int getEntry(Board board) {
 		long hashKey = hasher.generateHashKey(board.getEdges());
 		
-		return (board.getCurrTurn() == Main.myColor) ? table.get(hashKey) : 
-			board.getNumUncaptured() - table.get(hashKey);
+		return (board.getCurrTurn() == board.getMyColor()) ? 
+				table.get(hashKey) : 
+					board.getNumUncaptured() - table.get(hashKey);
 	}
 
 	public long getHash(Board board) {

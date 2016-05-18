@@ -3,9 +3,7 @@ package aiproj.hexifence.MartinAndy;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 
 import aiproj.hexifence.Move;
 import aiproj.hexifence.Piece;
@@ -33,17 +31,20 @@ public class Board {
 	private int dim;
 	/** Number of valid open edges left on the board. */
 	public int num_edges_left;
-	/** The current turn for this board state. */
-	private int curr_turn;
+	/** The current turn for this board state (initially
+	 * null, until we are told it his/her turn). */
+	private Integer curr_turn;
+	
+	/** The color of the main player (our agent) */
+	private int my_color;
 
 
 	/** Create an empty Hexifence board (ie. an initial state).
 	 * @param dim Dimension of board.
+	 * @param shallow_init If true, then only initalize the edges;
+	 * everything else is left uninitalized.
 	 */
-	public Board(int dim, int initTurn) {
-		// ensure Piece is a player color
-		assert(initTurn == Piece.BLUE || initTurn == Piece.RED);
-		
+	public Board(int dim, int my_color) {
 		// initialize jagged array
 		edges = new int[4*dim - 1][];
 		
@@ -69,15 +70,23 @@ public class Board {
 		this.enemy_score = 0;
 		this.num_edges_left = 3*dim*(3*dim - 1);
 		this.num_uncaptured = 3*dim*(dim - 1) + 1;
-		this.curr_turn = initTurn;
+		this.curr_turn = null;
+		this.my_color = my_color;
 	}
 	
-	/** Create a board with only the 2D array's <code>edges</code>
-	 * partly initialized. 
+	/** Private constructor that only initalizes the edges array.
 	 */
 	private Board(int dim) {
-		// prepare the jagged arrays
+		// initialize jagged array
 		edges = new int[4*dim - 1][];
+	}
+	
+	/** Initalize the board, if we have a player number prepared.
+	 */
+	public Board(int dim, int my_color, int curr_turn) {
+		this(dim, my_color);
+		assert(curr_turn == Piece.RED || curr_turn == Piece.BLUE);
+		this.curr_turn = curr_turn;
 	}
 	
 	/** Create a deep copy of the board.
@@ -106,6 +115,7 @@ public class Board {
 		copy.enemy_score = enemy_score;
 		copy.num_edges_left = num_edges_left;
 		copy.num_uncaptured = num_uncaptured;
+		copy.my_color = my_color;
 		
 		return copy;
 	}
@@ -184,8 +194,16 @@ public class Board {
 		return occupyEdge(move.Row, move.Col, move.P);
 	}
 	
+	/** Occupy an edge at the edge location (row, column)
+	 */
 	public boolean occupyEdge(int r, int c) {
 		return occupyEdge(r, c, curr_turn);
+	}
+	
+	/** Get the our agent's color for this game.
+	 */
+	public int getMyColor() {
+		return my_color;
 	}
 	
 	/** Indicate to the cell that one of its edges has been
@@ -205,7 +223,7 @@ public class Board {
 			// color centre cell as captured
 			setEdge(r, c, color);
 
-			if (color == Main.myColor) {
+			if (color == this.my_color) {
 				my_score++;
 			} else {
 				enemy_score++;
@@ -282,6 +300,10 @@ public class Board {
 		return num_edges_left == 0;
 	}
 	
+	public int getNumEdgesLeft() {
+		return num_edges_left;
+	}
+	
 	/** Get the maximum column number 'K', given a row
 	 * from (r, c) such that (r, K) is the last valid
 	 * edge in that row. 
@@ -303,8 +325,14 @@ public class Board {
 	}
 	
 	/** Get the current turn for this board. */
-	public int getCurrTurn() {
+	public Integer getCurrTurn() {
 		return curr_turn;
+	}
+	
+	/** Set the current turn for this board.
+	 */
+	public void setCurrTurn(Integer player) {
+		this.curr_turn = player;
 	}
 	
 	/** Get the score difference between self and enemy.
@@ -373,8 +401,6 @@ public class Board {
 		return num_uncaptured;
 	}
 	
-
-	
 	/** Checks if (r, c) is not "on or inside the game board".
 	 */
 	public boolean isOutOfRange(int r, int c) {
@@ -383,6 +409,8 @@ public class Board {
 				c > getMaxColumn(r, dim));
 	}
 	
+	/** Retrieve the dimension of board.
+	 */
 	public int getDim() {
 		return dim;
 	}
@@ -648,27 +676,11 @@ public class Board {
 
 		return false;
 	}
-
-	/** Return a bit string view of the board, where <code>0</code>
-	 * represents an unoccupied cell/edge, and <code>1</code> otherwise.
-	 */
-	public String toBitString() {
-		StringBuilder sb = new StringBuilder();
-		
-		for (int i = 0; i < edges.length; i++) {
-			
-			for (int j = 0; j < edges[i].length; j++) {
-				sb.append((edges[i][j] == Piece.EMPTY) ? 0 : 1);
-			}
-			
-			sb.append(' ');
-		}
-		
-		
-		return sb.toString();
-	}
 	
 	public String toString() {
+		// print string, based on position (cell or edge), and if it
+		// is 'in the game board'
+		
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < 4*dim - 1; i++) {
 			
