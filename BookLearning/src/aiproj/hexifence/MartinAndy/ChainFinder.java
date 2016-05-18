@@ -2,6 +2,9 @@ package aiproj.hexifence.MartinAndy;
 
 import java.util.List;
 import java.util.Map.Entry;
+
+import javax.xml.crypto.dsig.keyinfo.PGPData;
+
 import java.util.Queue;
 
 import aiproj.hexifence.Piece;
@@ -12,75 +15,44 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.awt.Point;
 
-public class ConnectedGraph {
-	public List<List<Point>> components;
+public class ChainFinder {
+	public List<Chain> potentials;
 	public List<Chain> chains;
 	public Board board;
-	
-	/*
-	private boolean possiblePotentChain() {
-		// if the info about chain has been calculated previously
-		if (potential_chain != null)
-			return potential_chain;
 
-		for (Point[] comp : components) {
-			for (Point p : comp) {
-				int count = board.getNumOpen(p.x, p.y);
-
-				// if a cell has two open edges, then one open edge turns
-				// it into a chain
-				if (count == 2) {
-					potential_chain = true;
-					break;
-				}
-			}
-		}
-		
-		potential_chain = false;
-		
-		return potential_chain;
-	}
-	*/
-	
 	/** Get a list of chains from this board.
 	 */
 	public List<Chain> getChains() {
 		return chains;
 	}
 	
-	/** Returns a list of 'components'. That is, a list
-	 * of connected components, excluding chains in the
-	 * connected component.
+	/** Get a list of potential chains from this board.
 	 */
-	public List<List<Point>> getComponents() {
-		return components;
-	}
-	
-	/** Get how many connected components (that do not include
-	 * chains) there are.
-	 */
-	public int getLength() {
-		return components.size();
+	public List<Chain> getPotentials() {
+		return potentials;
 	}
 	
 	/** Returns a list of (strongly) connected components,
 	 * where the cell's represent the vertices, and the edges
 	 * between the cell's being the 'edges of the graph'.
 	 */
-	public ConnectedGraph(Board b) {
-		this.components = new ArrayList<List<Point>>();
+	public ChainFinder(Board b) {
+		this.potentials = new ArrayList<Chain>();
 		this.board = b;
 		this.chains = new ArrayList<Chain>();
 
 		findComponents();
 	}
 	
-	/** Find all connected components, and its chains for a
-	 * given game board.
+	/** Find all connected components, chain and potential
+	 * chains for a given state.
 	 */
 	private void findComponents() {
 		// get list of cells which haven't been captured
 		List<Point> unexplored = board.getUncapturedCells();
+		// use a deep copy board, so that we can simulate/find
+		// chains without modifying the current state
+		Board bclone = board.deepCopy(true);
 		
 		while (!unexplored.isEmpty()) {
 			Point p = unexplored.remove(0);
@@ -106,10 +78,16 @@ public class ConnectedGraph {
 					Point adj_c = new Point(p.x + 2*dif[0], p.y + 2*dif[1]);
 					Point adj_ed = new Point(p.x + dif[0], p.y + dif[1]);
 					
+					// if cell has already been explored
+					if (!unexplored.contains(adj_c)) {
+						continue;
+					}
+					
+					// adjacent cell and edge are inside the board, and
+					// that the edge between them is not occupied
 					if (!board.isCentreCell(adj_c.x, adj_c.y) ||
 						board.isOutOfRange(adj_ed.x, adj_ed.y) ||
-						board.getEdge(adj_ed.x, adj_ed.y) != Piece.EMPTY ||
-						!unexplored.contains(adj_c)) {
+						board.getEdge(adj_ed.x, adj_ed.y) != Piece.EMPTY) {
 						continue;
 					}
 					
@@ -121,15 +99,57 @@ public class ConnectedGraph {
 			}
 			
 			if (!cell_open.isEmpty()) {
-				chains.addAll(getChains(cell_open, board.deepCopy(true), component));
+				chains.addAll(getChains(cell_open, bclone, component, false));
 			}
 			
-			components.add(component);
+			findPotentChains(bclone, component, this);
 		}
 	}
 	
+	private static void findPotentChains(Board bclone, List<Point> component,
+			ChainFinder chain_finder) {
+
+		// cells with only two edges left
+		List<Point> potent_cells = new ArrayList<Point>();
+		
+		for (Point p : component) {
+			if (bclone.getNumOpen(p.x, p.y) == 2) {
+				potent_cells.add(p);
+			}
+		}
+		
+		// for each potential cells, occupying any of the two edges,
+		// and perform a chain search
+		for (Point potent : potent_cells) {
+			Point curr_ed = null;
+			
+			for (int[] dif : Board.EDGE_DIFF) {
+				curr_ed = new Point(potent.x + dif[0], potent.y + dif[1]);
+				
+				if (bclone.getEdge(curr_ed.x, curr_ed.y) == Piece.EMPTY) {
+					break;
+				}
+			}
+			
+			bclone.forceSetEdge(curr_ed.x, curr_ed.y);
+			
+			Queue<Point> cell_open = new LinkedList<Point>();
+			cell_open.add(potent);
+
+			List<Chain> potent_chain = getChains(cell_open,
+					bclone.deepCopy(true), component, true);
+
+			chain_finder.potentials.addAll(potent_chain);
+			
+			bclone.forceRevertEdge(curr_ed.x, curr_ed.y);
+		}
+	}
+	
+	/** Find chains in a connected component, given cells which have
+	 * only one edge left.
+	 */
 	private static List<Chain> getChains(Queue<Point> cell_open, Board bclone,
-			List<Point> component) {
+			List<Point> component, boolean isPotential) {
 		
 		HashMap<Point, Chain> wait_lst = 
 				new HashMap<Point, Chain>();
@@ -139,7 +159,7 @@ public class ConnectedGraph {
 		while (!cell_open.isEmpty()) {
 			Chain new_chain = new Chain();
 			Point chain_stop = createChain(cell_open, bclone, new_chain);
-		
+			new_chain.isPotential = isPotential;
 
 			if (new_chain.cells.isEmpty()) {
 				continue;
@@ -177,13 +197,18 @@ public class ConnectedGraph {
 			final_chains.add(entry.getValue());
 		}
 		
-		for (Chain c : final_chains) {
-			component.removeAll(c.cells);
+		if (!isPotential) {
+			for (Chain c : final_chains) {
+				component.removeAll(c.cells);
+			}
 		}
-		
+
 		return final_chains;
 	}
 	
+	/** Create a new chain, starting from a cell with only
+	 * one free edge left.
+	 */
 	private static Point createChain(Queue<Point> cell_open,
 			Board bclone, Chain chain) {
 		
@@ -192,6 +217,9 @@ public class ConnectedGraph {
 		return exploreChains(start, bclone, cell_open, chain);
 	}
 
+	/** Start exploring a chain path, starting from cell
+	 * centre (which has only one edge left).
+	 */
 	private static Point exploreChains(Point p, Board bclone,
 			Queue<Point> cell_open,
 			Chain chain) {

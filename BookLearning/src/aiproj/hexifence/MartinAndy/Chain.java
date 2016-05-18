@@ -7,4 +7,5 @@ import java.util.List;
 public class Chain {
 	public List<Point> cells = new ArrayList<Point>();
 	public Boolean isClosed = true;
+	public Boolean isPotential = false;
 }
