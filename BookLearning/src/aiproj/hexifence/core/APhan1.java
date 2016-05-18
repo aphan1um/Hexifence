@@ -4,7 +4,7 @@
  * 
  */
 
-package aiproj.hexifence.MartinAndy;
+package aiproj.hexifence.core;
 
 import java.io.PrintStream;
 
@@ -13,7 +13,7 @@ import aiproj.hexifence.Piece;
 import aiproj.hexifence.Player;
 
 
-public class MartinAndyAgent implements Player, Piece {
+public class APhan1 implements Player, Piece {
 	private Board board;
 	private boolean receivedIllegal = false;
 	

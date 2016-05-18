@@ -4,7 +4,7 @@
  * 
  */
 
-package aiproj.hexifence.MartinAndy;
+package aiproj.hexifence.core;
 
 import java.awt.Point;
 import java.util.ArrayList;

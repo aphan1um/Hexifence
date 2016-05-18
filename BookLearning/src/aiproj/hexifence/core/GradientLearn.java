@@ -4,7 +4,7 @@
  * 
  */
 
-package aiproj.hexifence.MartinAndy;
+package aiproj.hexifence.core;
 
 import java.util.ArrayList;
 import java.util.HashMap;

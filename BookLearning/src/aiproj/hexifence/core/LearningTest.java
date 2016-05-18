@@ -4,7 +4,7 @@
  * 
  */
 
-package aiproj.hexifence.MartinAndy;
+package aiproj.hexifence.core;
 
 import java.util.List;
 import java.util.Map.Entry;
