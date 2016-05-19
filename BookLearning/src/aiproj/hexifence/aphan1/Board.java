@@ -749,12 +749,12 @@ public class Board {
 				sb.append(' ');
 			}
 			
+			// remove the whitespace at the end of the line (due
+			// to above)
 			sb.setLength(sb.length() - 1);
 			sb.append('\n');
 		}
-		
-		sb.setLength(sb.length() - 1);
-		
+
 		return sb.toString();
 	}
 }

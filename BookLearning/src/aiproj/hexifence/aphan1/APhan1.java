@@ -137,6 +137,8 @@ public class APhan1 implements Player, Piece {
 			return state.getScoreDiff();
 		} else if (depth >= CUTOFF_DEPTH) {
 			return eval(state);
+		// if we find a symmetric board to state, which is already
+		// stored in the transposition table
 		} else if ((possible_sym = state.isRotateSymmetric(table)) != null) {
 			return table.getEntry(possible_sym);
 		}
