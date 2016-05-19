@@ -7,6 +7,7 @@
 package aiproj.hexifence.aphan1;
 
 import java.io.PrintStream;
+import java.util.List;
 
 import aiproj.hexifence.Move;
 import aiproj.hexifence.Piece;
@@ -19,6 +20,9 @@ public class APhan1 implements Player, Piece {
 	
 	/** Cutoff depth for minimax and a-b search */
 	private static final int CUTOFF_DEPTH = 3;
+	
+	private static final double W_CHAIN = 1;
+	private static final double W_SCORE = 1;
 	
 	private Move next_move = null;
 	
@@ -125,7 +129,7 @@ public class APhan1 implements Player, Piece {
 		if (state.isFinished()) {		
 			return state.getScoreDiff();
 		} else if (depth >= CUTOFF_DEPTH) {
-			return eval();
+			return eval(state);
 		}
 		
 		// create a copy of board, to use as a child state
@@ -204,7 +208,10 @@ public class APhan1 implements Player, Piece {
 	*/
 	
 	/** Our evaluation function to use for non-terminal states. */
-	private double eval() {
-		return 0;
+	private double eval(Board state) {
+		ChainFinder chainFinder = new ChainFinder(state);
+		List<Chain> chains = chainFinder.chains;
+		
+		return W_CHAIN*LearningTest.f_getChain(state, chains) + W_SCORE*LearningTest.f_getScore(state);
 	}
 }

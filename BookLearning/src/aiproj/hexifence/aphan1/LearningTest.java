@@ -91,8 +91,18 @@ public class LearningTest {
 	}
 	
 	public static int f_getChain(Board board, List<Chain> chains) {
-		// Get the number of capturable chains on the board.
-		int chainFeature = chains.size();
+		// Get the length of the longest chain.
+		int chainFeature = 0;
+		
+		if (chains.size() > 0) {
+			chainFeature = chains.get(0).cells.size();
+			
+			for (Chain chain : chains) {
+				if (chain.cells.size() > chainFeature) {
+					chainFeature = chain.cells.size();
+				}
+			}
+		}
 
 		return chainFeature;
 	}
