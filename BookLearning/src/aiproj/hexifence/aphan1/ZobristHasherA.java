@@ -10,13 +10,15 @@ import java.util.Random;
 
 import aiproj.hexifence.Piece;
 
-public class ZobristHasher {
+/** Zobrist hasher to be used for our learner.
+ */
+public class ZobristHasherA implements Hasher {
 	private static final int SEED = 12345; 
 									// We can randomise the seed if needed.
 	
 	private long[] elementValueTable;
 	
-	public ZobristHasher(int dimension) {
+	public ZobristHasherA(int dimension) {
 		// Total number of edges for a game of dimension N.
 		int totalEdges = 3*dimension * (3*dimension - 1);
 		

@@ -564,12 +564,19 @@ public class Board {
 		return b2;
 	}
 	
+	/** Check if there is another board in table which is symmetric
+	 * to this one. If not, then <code>null</code> is returned.
+	 */
 	public Board isRotateSymmetric(TranspositionTable table) {
-		List<Board> sym_boards = getSymmetricBoards();
-		
-		for (Board r : sym_boards) {
-			if (table.isStored(r)) {
-				return r;
+		// 12 different symmetries for hexagon to try out
+		for (int numRotate = 0; numRotate < NUM_EDGES * 2; numRotate++) {
+			// rotate/reflect board board
+			Board r_board = rotateBoard(numRotate % NUM_EDGES,
+					numRotate >= NUM_EDGES);
+
+			// if symmetric board is stored in table, return that
+			if (table.isStored(r_board)) {
+				return r_board;
 			}
 		}
 
@@ -591,9 +598,12 @@ public class Board {
 		List<Board> sym_boards = new ArrayList<Board>(NUM_EDGES * 2);
 		
 		for (int numRotate = 0; numRotate < NUM_EDGES * 2; numRotate++) {
+			// rotate board
 			Board r_board = rotateBoard(numRotate % NUM_EDGES,
 					numRotate >= NUM_EDGES);
 			
+			// if rotated board is not added to listed yet, add it
+			// it is possible for some symmetries to match
 			if (!sym_boards.contains(r_board)) {
 				sym_boards.add(r_board);
 			}

@@ -30,8 +30,7 @@ public class APhan1 implements Player, Piece {
 	public int init(int n, int p) {
 		// check we received correct parameters
 		// (piece not a color, etc.)
-		if (n <= 0 || p != Piece.RED ||
-				p != Piece.BLUE) {
+		if (n <= 0 || (p != Piece.RED && p != Piece.BLUE)) {
 			return -1;
 		}
 		
@@ -49,11 +48,16 @@ public class APhan1 implements Player, Piece {
 			board.setCurrTurn(board.getMyColor());
 		}
 
-		// reset next_move, and perform minimax
-		// search
+		// reset next_move, and perform minimax search
 		next_move = null;
-		// TODO: some large values for alpha & beta
-		minimax(board, -1000, 1000, 0, true);
+		// large alpha and beta values to start the search
+		minimax(board, -1000, 1000, 0, true,
+				new TranspositionTable(board.getDim(),
+						new ZobristHasherB(board.getDim())));
+		
+		// now on our end of the board, occupy this best
+		// next move onto our board
+		board.occupyEdge(next_move);
 		
 		return next_move;
 	}
@@ -65,6 +69,7 @@ public class APhan1 implements Player, Piece {
 		if (board.isOutOfRange(m.Row, m.Col) ||
 				board.isCentreCell(m.Row, m.Col) ||
 				board.getEdge(m.Row, m.Col) != Piece.EMPTY) {
+			receivedIllegal = true;
 			return -1;
 		}
 		
@@ -123,13 +128,17 @@ public class APhan1 implements Player, Piece {
 	 * @return
 	 */
 	private double minimax(Board state, double a, double b,
-			int depth, boolean max) {
+			int depth, boolean max, TranspositionTable table) {
+		
+		Board possible_sym = null;
 		
 		// use utility function if we reach to terminal state
 		if (state.isFinished()) {		
 			return state.getScoreDiff();
 		} else if (depth >= CUTOFF_DEPTH) {
 			return eval(state);
+		} else if ((possible_sym = state.isRotateSymmetric(table)) != null) {
+			return table.getEntry(possible_sym);
 		}
 		
 		// create a copy of board, to use as a child state
@@ -145,14 +154,23 @@ public class APhan1 implements Player, Piece {
 				m.Col = c + Math.max(0, r - (2*child.getDim() - 1));
 				m.P = child.getCurrTurn();
 
+				
 				// if the edge has been occupied (or is cell centre)
 				// then move onto the next possible move
 				if (!child.occupyEdge(m)) {
 					continue;
 				}
 				
-				if (max) {
-					double result = minimax(child, a, b, depth + 1, !max);
+				
+				if (max) {		// our turn => maximize score
+					double result = minimax(child, a, b, depth + 1, !max,
+							table);
+					
+					// store symmetric states with same minimax value
+					List<Board> state_sym = child.getSymmetricBoards();
+					for (Board s : state_sym) {
+						table.storeEntry(s, result);
+					}
 					
 					if (result > a) {
 						a = result;
@@ -166,8 +184,9 @@ public class APhan1 implements Player, Piece {
 					
 					if (a >= b)
 						return b;
-				} else {
-					b = Math.min(b, minimax(child, a, b, depth + 1, !max));
+				} else {		// opponent turn => minimize score
+					b = Math.min(b, minimax(child, a, b, depth + 1, !max,
+							table));
 					
 					if (b <= a)
 						return a;
@@ -183,35 +202,12 @@ public class APhan1 implements Player, Piece {
 		}
 	}
 	
-	/*
-	private void preprocess_step(Board b) {
-		// ensure preprocess step happens at our turn
-		if (b.getCurrTurn() != b.getMyColor())
-			return;
-		
-		ChainFinder ch_finder = new ChainFinder(b);
-		
-		// if there chains, then there is nothing to do
-		if (ch_finder.chains.size() == 0)
-			return;
-
-		// find largest chain
-		Chain best_c = ch_finder.chains.get(0);
-		for (Chain c : ch_finder.chains) {
-			if (c.cells.size() > best_c.cells.size())
-				best_c = c;
-		}
-		
-		// get the chain
-		
-	}
-	*/
-	
 	/** Our evaluation function to use for non-terminal states. */
 	private double eval(Board state) {
 		ChainFinder chainFinder = new ChainFinder(state);
 		List<Chain> chains = chainFinder.chains;
 		
-		return W_CHAIN*LearningTest.f_getChain(state, chains) + W_SCORE*LearningTest.f_getScore(state);
+		return W_CHAIN*LearningTest.f_getChain(state, chains) +
+				W_SCORE*LearningTest.f_getScore(state);
 	}
 }

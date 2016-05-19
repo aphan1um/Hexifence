@@ -1,120 +1,146 @@
-COMP30024 - Project B
+COMP30024 - Project B (comments.txt)
 Andy Phan (aphan1) & Martin Cheong (cheongm)
+--------------------------------------------------------------------
+
+Note on  Referee-1-0:
+
+An edit was made to the Move.java file. The field member 'P' is now
+an integer instead of a Piece, since it was not possible to assign the
+player number/color to an interface Piece.
+
 --------------------------------------------------------------------
 
 Our implementation consists of several components. 
 
 The aphan1 class corresponds to our AI that implements the Player interface.
 
-It uses minimax search with alpha-beta pruning to discover the best move, using a evaluation
-function that is somewhat stable, using gradient descent learning with 100000 samples, for both
-dimensions 2 and 3.
+It uses minimax search with alpha-beta pruning to discover the best move, using
+a evaluation function that is somewhat stable, using gradient descent learning
+with 100000 samples, for both dimensions 2 and 3.
 
-We use the score difference our agent and the opponent (so the higher this number, the better) as
-the utility function, should we reach some terminal state. Otherwise, we use an evaluation function,
-where we have used machine learning to improve it.
+We note that we use a different Zobrist hasher for our agent
+(ZobristHasherB.java), compared to our learning component 
+(which uses ZobristHasherA.java). More of this will be explained later.
 
-Many samples from dimensions two and three were obtained by generating another minimax search
-(without alpha-beta pruning). Without any optimisations, searching from the initial state naively
-would have been infeasiable. Thus, several options were added to reduce search time and space:
+We use the score difference our agent and the opponent (so the higher this
+number, the better) as the utility function, should we reach some terminal
+state. Otherwise, we use an evaluation function, where we have used machine 
+learning to improve it.
+
+Many samples from dimensions two and three were obtained by generating 
+another minimax search (without alpha-beta pruning). Without any optimisations,
+searching from the initial state naively would have been infeasiable.
+Thus, several options were added to reduce search time and space:
 
 
 * Symmetries of the board:
-	Some boards are rotationally and/or reflectionally symmetric, by making a rotation of
-	the board by 60 degrees. Converting the current edge coordinates (r, c) into
-	3D cube coordinates (x, y, z) (a practical explanation can be found at
-	redblobgames.com/grids/hexagons/) provides an easier way to get these 12 possible
-	symmetries of a hexagon.
+	Some boards are rotationally and/or reflectionally symmetric, by making 
+	a rotation of the board by 60 degrees. Converting the current edge 
+	coordinates (r, c) into 3D cube coordinates (x, y, z) (a practical 
+	explanation can be found at redblobgames.com/grids/hexagons/) provides an
+	easier way to get these 12 possible symmetries of a hexagon.
 
 	
-	To make a 60 degrees anticlockwise rotation for an edge (r, c), we convert it to cube
-	coordinates (x, y, z) and transform it into (-z, -x, -y). For a reflection, we transform
-	it into (y, x, z). We can then revert into our Hexifence coordinates. We then apply
-	this to each edge on the board.
+	To make a 60 degrees anticlockwise rotation for an edge (r, c), we convert
+	it to cube coordinates (x, y, z) and transform it into (-z, -x, -y).
+	For a reflection, we transform it into (y, x, z). We can then revert into
+	our Hexifence coordinates. We then apply this to each edge on the board.
 
-	Finding these symmetries has proven to significantly reduce the search time, particularly
-	when used in conjuction with a transposition table.
+	Finding these symmetries has proven to significantly reduce the search
+	time, particularly when used in conjuction with a transposition table.
 
-	We have also used symmetries to reduce the number of child states to explore, since some
-	of some child states may be symmetric to another.
+	We have also used symmetries to reduce the number of child states to
+	explore, since some of some child states may be symmetric to another.
 
 
 * Using Zobrist Hashing and Transposition Table:
-	To avoid searching the same state twice, we could have stored the board configuration and
-	it's minimax value into a transposition table, hashed using Zobrist hashing
-	(longer bitstrings providing us with lesser collisions).
+	To avoid searching the same state twice, we could have stored the board
+	configuration and it's minimax value into a transposition table, hashed
+	using Zobrist hashing (longer bitstrings providing us with
+	lesser collisions).
 
-	However, we take a step further and realise that the colour of the edges, in fact,
-	do not matter. It is how many cells our agent and the opponent  have currently captured,
-	and the which edges are open and not (we refer to this as the 'edge configuration of the
-	board') of the current state, as well the current turn, that determines how well we do in
-	this game.
+	However, we take a step further and realise that the colour of the edges,
+	in fact, do not matter. It is how many cells our agent and the opponent 
+	have currently captured, and the which edges are open and not (we refer
+	to this as the 'edge configuration of the board') of the current state,
+	and well the current turn, that determines how well we do in this game.
 
-	As such, we only need to store the edge configuration as entries in the transposition table,
-	as well as the maximum number of cells that our agent can capture, given that the optimal
-	path is taken from the current state to the terminal state.
+	As such, we only need to store the edge configuration as entries in the
+	transposition table, as well as the maximum number of cells that our agent
+	can capture, given that the optimal path is taken from the current state
+	to the terminal state.
 
-	For example, suppose we were at some state in a 2-dimensional Hexifence board, and the score
-	was currently 3-1 (our score - enemy score). If we knew in advance that we would capture
-	only 1 cell at maximum, then using minimax our best score would be 4-3, since a
-	2-dimensional board has 7 cells.
+	For example, suppose we were at some state in a 2-dimensional Hexifence
+	board, and the score was currently 3-1 (our score - enemy score).
+	If we knew in advance that we would capture only 1 cell at maximum, then
+	using minimax our best score would be 4-3, since a 2-dimensional board
+	has 7 cells.
 
-	If we had only stored minimax values into the table, this would only apply for a certain
-	state with the same corresponding color edges. However, when storing the max number
-	of capturable cells by us instead, we can derive the final optimal score based only on
-	its board configuration, and the current turn for that state. Since we do not need to 
-	consider the color of the board's edges, we can use a given entry in table much more
-	often, then if we did consider the color of the edges.
+	If we had only stored minimax values into the table, this would only apply
+	for a certain state with the same corresponding color edges. However, when
+	storing the max number of capturable cells by us instead, we can derive the
+	final optimal score based only on its board configuration, and the current
+	turn for that state. Since we do not need to consider the color of the
+	board's edges, we can use a given entry in table much more often, then 
+	if we did consider the color of the edges.
 
-	However, we see that if we had 3-1 again, and it was this time the opponent's turn,
-	we can apply the same logic and say that blue would only capture 1 cell at max, if
-	playing optimally. So then the final score would be 5-2, if the opponent had started
-	the turn with that state.
+	However, we see that if we had 3-1 again, and it was this time the
+	opponent's turn, we can apply the same logic and say that blue would only
+	capture 1 cell at max, if playing optimally. So then the final score would
+	be 5-2, if the opponent had started the turn with that state.
 
-	Thus, we see that we do not need to also store/consider whose turn it is, for a given
-	state, since we can derive the final score (and thus the score difference), regardless if
-	we start a state with our turn or the opponent's turn.
+	Thus, we see that we do not need to also store/consider whose turn it is,
+	for a given state, since we can derive the final score (and thus the score
+	difference), regardless if we start a state with our turn or the
+	opponent's turn.
 
-	As a consequence, instead of storing each board and the colors' edges as an entry, we
-	need only consider the edge configuration and the max number of cells that can be captured
-	by our agent. Not only does the significantly reduce the size of the table, but also the
-	search time, especially when this idea is mixed with symmetries.
+	As a consequence, instead of storing each board and the colors' edges as an
+	entry, we need only consider the edge configuration and the max number of
+	cells that can be captured by our agent. Not only does the significantly
+	reduce the size of the table, but also the search time, especially when
+	this idea is mixed with symmetries. The hashing responsible for this can be
+	found in ZobristHasherA.java.
 
 
-For dimension 2, we were able to get the minimax value (without pruning) from the initial state in
-less than 10 seconds, if both of the optimisations were applied. With this, we generated samples to
-provide somewhat accurate evaluation function, that we would use in our actual agent.
+ZobristHasherB.java hashes the color of the edges (unlike ZobristHashingA),
+since we have memory and time limit in our state search. However, can still use
+symmetry with our transposition table using ZobristHashingB.java,
+to reduce search time.
 
-The learning part of the agent can be found in GradientLearn.java, and in LearningTest.java.
 
------------------------------------------------------------------------------------------------------
+For dimension 2, we were able to get the minimax value (without pruning) from
+the initial state in less than 10 seconds, if both of the optimisations were
+applied. With this, we generated samples to provide somewhat accurate
+evaluation function, that we would use in our actual agent.
+
+The learning part of the agent can be found in GradientLearn.java, and
+in LearningTest.java.
+
+---------------------------------------------------------------------
 Getting an evaluation function
------------------------------------------------------------------------------------------------------
-We have used gradient descent learning approach to improve our evaluation function, which is more
-useful in the late game (when we have 'chains').
+---------------------------------------------------------------------
+We have used gradient descent learning approach to improve our evaluation
+function, which is more useful in the late game (when we have 'chains').
 
-We define a 'chain', if we have a sequence of one or more capturable cells, for a given state. We
-have developed another class called ChainFinder.java to find these chains, for any board. We have
-considered chains as an important part of Hexifence, since we have the optimal strategy from
-early to mid game is to avoid giving free cells to the opponent, thus leading to a 'stalling strategy'.
-Eventually, the board will be filled with chains, and it will be a matter of a 'game of exchange'.
-That is, the one who sacrifices the least number of cells to the opponent is more likely to win the
-game.
+We define a 'chain', if we have a sequence of one or more capturable cells,
+for a given state. We have developed another class called ChainFinder.java to
+find these chains, for any board. We have considered chains as an important
+part of Hexifence, since we have seen that the optimal strategy from early to
+mid game is to avoid giving free cells to the opponent, thus leading to a 
+'stalling strategy'.
 
-With some experiments in finding features for our evaluation function, we have considered two of them
-to be fairly stable:
+Eventually, the board will be filled with chains, and it will be a matter of
+a 'game of exchange'. That is, the one who sacrifices the least number of cells
+overall to the opponent is more likely to win the game.
+
+With some experiments in finding features for our evaluation function, we have
+considered two of them to be fairly stable:
 
 - The score margin of the game.
 - The length of the longest chain.
 
-We have used around 100000 samples for 100000 for dimensions two and three dimensions to improve
-the weights for our evaluation function. LearningTest.java contains the code to provide this learning,
-while GradientLearn.java provides the samples.
+We have used around 100000 samples for 100000 for dimensions two and three
+dimensions to improve the weights for our evaluation function.
 
-Our approach to the project was to use the minimax algorithm (depth-first search) alongside Alpha-Beta pruning
-for our agent to decide which move to make. The evaluation function was generated by performing gradient descent
-learning based on the following features:
-
-Furthermore, we made a few observations about the game that helped us in developing our agent. The game allows
-for what's known as a "double-cross strategy" that can force the opponent to make a move for the agent's gain.
-// ADD MORE STUFF HERE //
+LearningTest.java contains the code to provide this learning, while
+GradientLearn.java provides the samples.

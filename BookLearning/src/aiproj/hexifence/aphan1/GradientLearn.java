@@ -12,7 +12,8 @@ import java.util.List;
 
 import aiproj.hexifence.Move;
 
-
+/** Gradient descent learning class, where it generates samples to learn.
+ */
 public class GradientLearn {
 	private TranspositionTable table;
 
@@ -29,7 +30,8 @@ public class GradientLearn {
 	public GradientLearn(int dim, int sample_num) {
 		this.dim = dim;
 		
-		this.table = new TranspositionTable(dim);
+		this.table = new TranspositionTable(dim, new ZobristHasherA(dim));
+		
 		this.sample_num = sample_num;
 	}
 	
@@ -72,7 +74,7 @@ public class GradientLearn {
 		Board sym = state.isRotateSymmetric(table);
 			
 		if (sym != null) {
-			int possible_capt = table.getEntry(sym);
+			double possible_capt = table.getEntry(sym);
 			
 			/*
 			 * If we were able to find a symmetric board, then we can 
@@ -85,10 +87,10 @@ public class GradientLearn {
 			 * 		(current num of uncaptured cells - K)
 			 * 
 			 */
-			ret[0] = state.getScoreDiff() + 
-					2*possible_capt - state.getNumUncaptured();
+			ret[0] = (int)(state.getScoreDiff() + 
+					2*possible_capt - state.getNumUncaptured());
 			
-			ret[1] = possible_capt;
+			ret[1] = (int)possible_capt;
 			
 			// place state in sample list, if permitted
 			if (sample_num != -1 && sample_num > 0) {

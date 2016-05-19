@@ -10,40 +10,33 @@ import java.util.HashMap;
 
 
 public class TranspositionTable {
-	private ZobristHasher hasher;
-	private HashMap<Long, Integer> table; 
+	private Hasher hasher;
+	private HashMap<Long, Double> table; 
 									// Hash map of (key, minimax value) pairs.
 
-	public TranspositionTable(int dimension) {
-		hasher = new ZobristHasher(dimension);
-		table = new HashMap<Long, Integer>();
+	public TranspositionTable(int dimension, Hasher hasher) {
+		this.hasher = hasher;
+		this.table = new HashMap<Long, Double>();
 	}
 	
+	/** Check if the given board is already in table. */
 	public boolean isStored(Board board) {
 		long hashKey = hasher.generateHashKey(board.getEdges());
 		
 		return table.containsKey(hashKey);
 	}
 	
+	/** Retrieve the size of table. */
 	public int getSize() {
 		return table.size();
 	}
 	
-	public void storeEntry(Board board, int value) {
+	public void storeEntry(Board board, double value) {
 		long hashKey = hasher.generateHashKey(board.getEdges());
-
-		if (value < 0) {
-			try {
-				throw new Exception();
-			} catch (Exception e) {
-				e.printStackTrace();
-				System.exit(0);
-			}
-		}
 
 		// if we get a collision
 		if (!table.containsKey(hashKey)) {
-			int store_value;
+			double store_value;
 			
 			// our agent's turn
 			if (board.getCurrTurn() == board.getMyColor()) {
@@ -54,6 +47,8 @@ public class TranspositionTable {
 
 			table.put(hashKey, store_value);
 		} else {
+			/*
+			
 			// if we happen to come across a board with different
 			//  value, then the one already stored in table
 			if (getEntry(board) != value) {
@@ -65,11 +60,13 @@ public class TranspositionTable {
 				}
 			}
 			
+			*/
+			
 		}
 
 	}
 	
-	public int getEntry(Board board) {
+	public double getEntry(Board board) {
 		long hashKey = hasher.generateHashKey(board.getEdges());
 		
 		return (board.getCurrTurn() == board.getMyColor()) ? 
