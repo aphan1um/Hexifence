@@ -163,7 +163,7 @@ for future states using Minimax, in order to save time.
 
 If we find a chain, then we could capture the cells in the chain before the
 opponent does. It may not the best move in all situations, but it at least
-improves our score.
+improves our score. In essence, we may see this as a greedy tactic.
 
 We see that the 'preprocessing' step is a domain specific heuristic for
 Hexifence that we can use to reduce time on finding the best move, at least

@@ -21,8 +21,6 @@ import java.awt.Point;
 
 
 public class ChainFinder {
-	/** List of 'potential chains'. */
-	public List<Chain> potentials;
 	/** List of chains for a board. */
 	public List<Chain> chains;
 	/** The board the <code>ChainFinder</code> analysed on,
@@ -36,26 +34,18 @@ public class ChainFinder {
 		return chains;
 	}
 	
-	/** Get a list of potential chains from this board.
-	 */
-	public List<Chain> getPotentials() {
-		return potentials;
-	}
-	
 	/** Returns a list of (strongly) connected components,
 	 * where the cell's represent the vertices, and the edges
 	 * between the cell's being the 'edges of the graph'.
 	 */
 	public ChainFinder(Board b) {
-		this.potentials = new ArrayList<Chain>();
 		this.board = b;
 		this.chains = new ArrayList<Chain>();
 
 		findComponents();
 	}
 	
-	/** Find all connected components, chain and potential
-	 * chains for a given state.
+	/** Find all connected components, find all chains for a given state.
 	 */
 	private void findComponents() {
 		// get list of cells which haven't been captured
@@ -111,59 +101,8 @@ public class ChainFinder {
 			// now in this connected component, find all possible
 			// chains
 			if (!cell_open.isEmpty()) {
-				chains.addAll(getChains(cell_open, bclone, component, false));
+				chains.addAll(getChains(cell_open, bclone, component));
 			}
-			
-			findPotentChains(bclone, component, this);
-		}
-	}
-	
-	/** Find 'potential chains' for a given connected component.
-	 * 
-	 * @param bclone A deep copy of a given board.
-	 * @param component Group of cells as a connected component.
-	 * @param chain_finder <code>ChainFinder</code> class containing
-	 * the component and board.
-	 */
-	private static void findPotentChains(Board bclone,
-			List<Point> component, ChainFinder chain_finder) {
-
-		// cells with only two edges left
-		List<Point> potent_cells = new ArrayList<Point>();
-		
-		for (Point p : component) {
-			if (bclone.getNumOpen(p.x, p.y) == 2) {
-				potent_cells.add(p);
-			}
-		}
-		
-		for (Point potent : potent_cells) {
-			Point curr_ed = null;
-			
-			// find edge to occupy on potential cell (any will do)
-			for (int[] dif : Board.EDGE_DIFF) {
-				curr_ed = new Point(potent.x + dif[0], potent.y + dif[1]);
-				
-				if (bclone.getEdge(curr_ed.x, curr_ed.y) == Piece.EMPTY) {
-					break;
-				}
-			}
-			
-			// for the time being, occupy this edge, and use
-			// getChains to find a chain path, if the 'potential
-			// chain' became a chain
-			bclone.forceSetEdge(curr_ed.x, curr_ed.y);
-			
-			Queue<Point> cell_open = new LinkedList<Point>();
-			cell_open.add(potent);
-
-			List<Chain> potent_chain = getChains(cell_open,
-					bclone.deepCopy(true), component, true);
-
-			// add all potential chains to list
-			chain_finder.potentials.addAll(potent_chain);
-			 
-			bclone.forceRevertEdge(curr_ed.x, curr_ed.y);
 		}
 	}
 	
@@ -172,7 +111,7 @@ public class ChainFinder {
 	 * one edge left.
 	 */
 	private static List<Chain> getChains(Queue<Point> cell_open, 
-			Board bclone, List<Point> component, boolean isPotential) {
+			Board bclone, List<Point> component) {
 		
 		HashMap<Point, Chain> wait_lst = 
 				new HashMap<Point, Chain>();
@@ -182,7 +121,6 @@ public class ChainFinder {
 		while (!cell_open.isEmpty()) {
 			Chain new_chain = new Chain();
 			Point chain_stop = createChain(cell_open, bclone, new_chain);
-			new_chain.isPotential = isPotential;
 
 			if (new_chain.cells.isEmpty()) {
 				continue;
@@ -218,14 +156,6 @@ public class ChainFinder {
 		for (Entry<Point, Chain> entry : wait_lst.entrySet()) {
 			entry.getValue().isClosed = false;
 			final_chains.add(entry.getValue());
-		}
-		
-		// remove all cells in a given connected component, if
-		// part of a chain (potential chains are exempt from this)
-		if (!isPotential) {
-			for (Chain c : final_chains) {
-				component.removeAll(c.cells);
-			}
 		}
 
 		return final_chains;

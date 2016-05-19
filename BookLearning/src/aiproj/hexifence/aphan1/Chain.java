@@ -17,9 +17,4 @@ public class Chain {
 	 * edge (we call this 'half-open'). Otherwise it is closed.
 	 */
 	public Boolean isClosed = true;
-	/** If this chain is a 'potential chain'. That is, a set of
-	 * cells can become a potential chain, if one of its cells
-	 * with two edges left becomes one. 
-	 */
-	public Boolean isPotential = false;
 }
