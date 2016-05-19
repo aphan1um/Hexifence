@@ -94,10 +94,14 @@ public class LearningTest {
 		
 	}
 	
+	/** Feature which gets the score difference, for a state.
+	 */
 	public static int f_getScore(Board board) {
 		return board.getScoreDiff();
 	}
 	
+	/** Feature which finds the longest chain.
+	 */
 	public static int f_getChain(Board board, List<Chain> chains) {
 		// Get the length of the longest chain.
 		int chainFeature = 0;
@@ -115,12 +119,20 @@ public class LearningTest {
 		return chainFeature;
 	}
 	
+	/** Dummy feature, if we needed it.
+	 */
 	public static double f_getDummy(Board board, ChainFinder chain_finder) {
 		return 0;
 	}
 	
-	// TODO: a peculiar function
+	/** Peculiar function (for testing), which was to account for the
+	 * fact that the person who started second (and not first) has an
+	 * 'easier time' winning the game.
+	 */
 	public static double f_getEnemyScore(Board board) {
+		// number of edges is always odd, so if the first player
+		// takes an edge, then the second turn will have an
+		// even number of unoccupied edges
 		if (board.getNumEdgesLeft() % 2 == 0 && 
 				board.getCurrTurn() == board.getMyColor())
 			return 1;

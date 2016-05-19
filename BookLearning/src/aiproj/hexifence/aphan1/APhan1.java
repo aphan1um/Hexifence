@@ -22,7 +22,8 @@ public class APhan1 implements Player, Piece {
 	/** Cutoff depth for minimax and a-b search */
 	private static final int CUTOFF_DEPTH = 6;
 	
-	private static final double W_CHAIN = 1;
+	// weights through machine learning for our features
+	private static final double W_CHAIN = 1.5;
 	private static final double W_SCORE = 1;
 	
 	private Move next_move = null;
@@ -72,45 +73,29 @@ public class APhan1 implements Player, Piece {
 		return next_move;
 	}
 	
-	/** For current state, if a chain exists, then we should take it.
-	 * If a potential chain exists, then we choose the smallest one.
+	/** For current state, if a chain exists, then take it.
 	 */
-	public Move preprocess() {
+	private Move preprocess() {
 		ChainFinder chainFinder = new ChainFinder(board);	// finds chains
-		Chain small_pot = null;		// smallest potential chain
-		
-		// find smallest potential chain (to give to the
-		// opponent as sacrifice)
-		if (!chainFinder.potentials.isEmpty()) {
-			small_pot = chainFinder.potentials.get(0);
-			
-			for (Chain c : chainFinder.potentials) {
-				// if we found a potential chain smaller than
-				// the current potential chain
-				if (c.cells.size() < small_pot.cells.size()) {
-					small_pot = c;
-				}
-			}
-		}
-		
 		
 		// if a chain exists, then we should capture it,
 		// before the opponent does
-		if (!chainFinder.chains.isEmpty()) {
-			
+		if (!chainFinder.chains.isEmpty()) {		
 			for (Chain c : chainFinder.chains) {
-				// first cell in the chain
-				Point first_cell = c.cells.get(0);
+				Point first_cell = null;
+				
+				// find cell in the chain with only one
+				// free edge left
+				for (Point p : c.cells) {
+					if (board.getNumOpen(p.x, p.y) == 1) {
+						first_cell = p;
+						break;
+					}
+				}
 				
 				return getFirstFreeEdge(first_cell);
 			}
 			
-		} else if (small_pot != null) {
-			// if there are no chains, but a potential chain exists
-			
-			// first cell in the potential chain
-			Point first_cell = small_pot.cells.get(0);
-			return getFirstFreeEdge(first_cell);
 		}
 		
 		return null;
@@ -122,6 +107,11 @@ public class APhan1 implements Player, Piece {
 	 */
 	private Move getFirstFreeEdge(Point centre_cell) {
 		Move ret_move = null;
+		
+		// if argument is empty
+		if (centre_cell == null) {
+			return null;
+		}
 		
 		// check chain is a centre cell (as a precaution)
 		if (board.isCentreCell(centre_cell.x, centre_cell.y)) {
@@ -145,6 +135,7 @@ public class APhan1 implements Player, Piece {
 			}
 		}
 		
+		// if all edges are closed for cell centre
 		return null;
 	}
 

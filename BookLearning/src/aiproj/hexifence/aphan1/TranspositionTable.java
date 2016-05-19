@@ -31,6 +31,9 @@ public class TranspositionTable {
 		return table.size();
 	}
 	
+	/** Store a given value to the table, given a certain board
+	 * configuration (and the hashing being used).
+	 */
 	public void storeEntry(Board board, double value) {
 		long hashKey = hasher.generateHashKey(board.getEdges());
 
@@ -46,35 +49,16 @@ public class TranspositionTable {
 			}
 
 			table.put(hashKey, store_value);
-		} else {
-			/*
-			
-			// if we happen to come across a board with different
-			//  value, then the one already stored in table
-			if (getEntry(board) != value) {
-				try {
-					throw new Exception();
-				} catch (Exception e) {
-					e.printStackTrace();
-					System.exit(0);
-				}
-			}
-			
-			*/
-			
 		}
-
 	}
 	
+	/** Get value stored, based on the board.
+	 */
 	public double getEntry(Board board) {
 		long hashKey = hasher.generateHashKey(board.getEdges());
 		
 		return (board.getCurrTurn() == board.getMyColor()) ? 
 				table.get(hashKey) : 
 					board.getNumUncaptured() - table.get(hashKey);
-	}
-
-	public long getHash(Board board) {
-		return hasher.generateHashKey(board.getEdges());
 	}
 }

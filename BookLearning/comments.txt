@@ -136,9 +136,6 @@ part of Hexifence, since we have seen that the optimal strategy from early to
 mid game is to avoid giving free cells to the opponent, thus leading to a 
 'stalling strategy'.
 
-We also define a 'potential chain' to be a cell that has two free edges left.
-If one of those edges is taken, then it becomes chain with length 1 or more.
-
 Eventually, the board will be filled with chains, and it will be a matter of
 a 'game of exchange'. That is, the one who sacrifices the least number of
 cells overall to the opponent is more likely to win the game.
@@ -161,18 +158,13 @@ GradientLearn.java provides the samples.
 ---------------------------------------------------------------------
 
 In our agent APhan1.java, we have added a preprocessor, which handles
-situations where a chain or potential chain exists. The preprocessor
-aims to avoid searching for future states using Minimax, in order to
-save time.
+situations where a chain exists. The preprocessor aims to avoid searching
+for future states using Minimax, in order to save time.
 
-If we find a chain, then we should obviously capture the cells in the
-chain before the opponent does.
-
-If there is a potential chain, and no chain for a current state, then
-we should clearly give the smallest potential chain to the opponent.
-
-If we reach any of these cases, we can instantly choose to make a move
-based on these situations.
+If we find a chain, then we could capture the cells in the chain before the
+opponent does. It may not the best move in all situations, but it at least
+improves our score.
 
 We see that the 'preprocessing' step is a domain specific heuristic for
-Hexifence that we can use to reduce time on finding the best move.
+Hexifence that we can use to reduce time on finding the best move, at least
+for those kinds of situations.
