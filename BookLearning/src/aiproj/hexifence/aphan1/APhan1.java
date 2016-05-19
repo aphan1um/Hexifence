@@ -4,7 +4,7 @@
  * 
  */
 
-package aiproj.hexifence.core;
+package aiproj.hexifence.aphan1;
 
 import java.io.PrintStream;
 
