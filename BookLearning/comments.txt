@@ -2,7 +2,7 @@ COMP30024 - Project B (comments.txt)
 Andy Phan (aphan1) & Martin Cheong (cheongm)
 --------------------------------------------------------------------
 
-Note on  Referee-1-0:
+* Note on Referee-1-0: *
 
 An edit was made to the Move.java file. The field member 'P' is now
 an integer instead of a Piece, since it was not possible to assign the
@@ -14,9 +14,9 @@ Our implementation consists of several components.
 
 The aphan1 class corresponds to our AI that implements the Player interface.
 
-It uses minimax search with alpha-beta pruning to discover the best move, using
-a evaluation function that is somewhat stable, using gradient descent learning
-with 100000 samples, for both dimensions 2 and 3.
+It uses minimax search with alpha-beta pruning to discover the best move,
+using a evaluation function that is somewhat stable, using gradient descent
+learning with 100000 samples, for both dimensions 2 and 3.
 
 We note that we use a different Zobrist hasher for our agent
 (ZobristHasherB.java), compared to our learning component 
@@ -27,9 +27,15 @@ number, the better) as the utility function, should we reach some terminal
 state. Otherwise, we use an evaluation function, where we have used machine 
 learning to improve it.
 
+--------------------------------------------------------------------
+Machine learning:
+--------------------------------------------------------------------
+
 Many samples from dimensions two and three were obtained by generating 
-another minimax search (without alpha-beta pruning). Without any optimisations,
-searching from the initial state naively would have been infeasiable.
+another minimax search (without alpha-beta pruning). Without any
+optimizations, searching from the initial state naively would have been
+infeasible.
+
 Thus, several options were added to reduce search time and space:
 
 
@@ -37,8 +43,8 @@ Thus, several options were added to reduce search time and space:
 	Some boards are rotationally and/or reflectionally symmetric, by making 
 	a rotation of the board by 60 degrees. Converting the current edge 
 	coordinates (r, c) into 3D cube coordinates (x, y, z) (a practical 
-	explanation can be found at redblobgames.com/grids/hexagons/) provides an
-	easier way to get these 12 possible symmetries of a hexagon.
+	explanation can be found at redblobgames.com/grids/hexagons/) provides
+	an easier way to get these 12 possible symmetries of a hexagon.
 
 	
 	To make a 60 degrees anticlockwise rotation for an edge (r, c), we convert
@@ -78,11 +84,11 @@ Thus, several options were added to reduce search time and space:
 
 	If we had only stored minimax values into the table, this would only apply
 	for a certain state with the same corresponding color edges. However, when
-	storing the max number of capturable cells by us instead, we can derive the
-	final optimal score based only on its board configuration, and the current
-	turn for that state. Since we do not need to consider the color of the
-	board's edges, we can use a given entry in table much more often, then 
-	if we did consider the color of the edges.
+	storing the max number of capturable cells by us instead, we can derive
+	the final optimal score based only on its board configuration, and the
+	current turn for that state. Since we do not need to consider the color
+	of the board's edges, we can use a given entry in table much more often,
+	then if we did consider the color of the edges.
 
 	However, we see that if we had 3-1 again, and it was this time the
 	opponent's turn, we can apply the same logic and say that blue would only
@@ -105,7 +111,7 @@ Thus, several options were added to reduce search time and space:
 ZobristHasherB.java hashes the color of the edges (unlike ZobristHashingA),
 since we have memory and time limit in our state search. However, can still use
 symmetry with our transposition table using ZobristHashingB.java,
-to reduce search time.
+to reduce search time (as well as increase cut-off depth).
 
 
 For dimension 2, we were able to get the minimax value (without pruning) from
@@ -119,6 +125,7 @@ in LearningTest.java.
 ---------------------------------------------------------------------
 Getting an evaluation function
 ---------------------------------------------------------------------
+
 We have used gradient descent learning approach to improve our evaluation
 function, which is more useful in the late game (when we have 'chains').
 
@@ -129,18 +136,43 @@ part of Hexifence, since we have seen that the optimal strategy from early to
 mid game is to avoid giving free cells to the opponent, thus leading to a 
 'stalling strategy'.
 
-Eventually, the board will be filled with chains, and it will be a matter of
-a 'game of exchange'. That is, the one who sacrifices the least number of cells
-overall to the opponent is more likely to win the game.
+We also define a 'potential chain' to be a cell that has two free edges left.
+If one of those edges is taken, then it becomes chain with length 1 or more.
 
-With some experiments in finding features for our evaluation function, we have
-considered two of them to be fairly stable:
+Eventually, the board will be filled with chains, and it will be a matter of
+a 'game of exchange'. That is, the one who sacrifices the least number of
+cells overall to the opponent is more likely to win the game.
+
+With some experiments in finding features for our evaluation function,
+we have considered two of them to be fairly stable:
 
 - The score margin of the game.
 - The length of the longest chain.
 
-We have used around 100000 samples for 100000 for dimensions two and three
-dimensions to improve the weights for our evaluation function.
+We have used around 100000 samples for dimensions two and three
+to improve the weights for our evaluation function.
 
 LearningTest.java contains the code to provide this learning, while
 GradientLearn.java provides the samples.
+
+
+---------------------------------------------------------------------
+'Preprocessing'
+---------------------------------------------------------------------
+
+In our agent APhan1.java, we have added a preprocessor, which handles
+situations where a chain or potential chain exists. The preprocessor
+aims to avoid searching for future states using Minimax, in order to
+save time.
+
+If we find a chain, then we should obviously capture the cells in the
+chain before the opponent does.
+
+If there is a potential chain, and no chain for a current state, then
+we should clearly give the smallest potential chain to the opponent.
+
+If we reach any of these cases, we can instantly choose to make a move
+based on these situations.
+
+We see that the 'preprocessing' step is a domain specific heuristic for
+Hexifence that we can use to reduce time on finding the best move.

@@ -6,6 +6,7 @@
 
 package aiproj.hexifence.aphan1;
 
+import java.awt.Point;
 import java.io.PrintStream;
 import java.util.List;
 
@@ -19,7 +20,7 @@ public class APhan1 implements Player, Piece {
 	private boolean receivedIllegal = false;
 	
 	/** Cutoff depth for minimax and a-b search */
-	private static final int CUTOFF_DEPTH = 3;
+	private static final int CUTOFF_DEPTH = 6;
 	
 	private static final double W_CHAIN = 1;
 	private static final double W_SCORE = 1;
@@ -48,18 +49,103 @@ public class APhan1 implements Player, Piece {
 			board.setCurrTurn(board.getMyColor());
 		}
 
-		// reset next_move, and perform minimax search
+		// reset next_move
 		next_move = null;
-		// large alpha and beta values to start the search
-		minimax(board, -1000, 1000, 0, true,
-				new TranspositionTable(board.getDim(),
-						new ZobristHasherB(board.getDim())));
+		
+		// if we can find a chain (through preprocessing)
+		Move pre_move = null;
+		if ((pre_move = preprocess()) != null) {
+			next_move = pre_move;
+		} else {
+			// large alpha and beta values to start minimax a-b search
+			// note that we use ZobristHasherB, for the agent
+			// (refer to comment.txt for more details)
+			minimax(board, -1000, 1000, 0, true,
+					new TranspositionTable(board.getDim(),
+							new ZobristHasherB(board.getDim())));
+		}
 		
 		// now on our end of the board, occupy this best
 		// next move onto our board
 		board.occupyEdge(next_move);
 		
 		return next_move;
+	}
+	
+	/** For current state, if a chain exists, then we should take it.
+	 * If a potential chain exists, then we choose the smallest one.
+	 */
+	public Move preprocess() {
+		ChainFinder chainFinder = new ChainFinder(board);	// finds chains
+		Chain small_pot = null;		// smallest potential chain
+		
+		// find smallest potential chain (to give to the
+		// opponent as sacrifice)
+		if (!chainFinder.potentials.isEmpty()) {
+			small_pot = chainFinder.potentials.get(0);
+			
+			for (Chain c : chainFinder.potentials) {
+				// if we found a potential chain smaller than
+				// the current potential chain
+				if (c.cells.size() < small_pot.cells.size()) {
+					small_pot = c;
+				}
+			}
+		}
+		
+		
+		// if a chain exists, then we should capture it,
+		// before the opponent does
+		if (!chainFinder.chains.isEmpty()) {
+			
+			for (Chain c : chainFinder.chains) {
+				// first cell in the chain
+				Point first_cell = c.cells.get(0);
+				
+				return getFirstFreeEdge(first_cell);
+			}
+			
+		} else if (small_pot != null) {
+			// if there are no chains, but a potential chain exists
+			
+			// first cell in the potential chain
+			Point first_cell = small_pot.cells.get(0);
+			return getFirstFreeEdge(first_cell);
+		}
+		
+		return null;
+	}
+	
+	/** Returns any free edge, for a given 'centre cell' (ie.
+	 * a point (r,c) which is invalid but represents the centre
+	 * of some cell)
+	 */
+	private Move getFirstFreeEdge(Point centre_cell) {
+		Move ret_move = null;
+		
+		// check chain is a centre cell (as a precaution)
+		if (board.isCentreCell(centre_cell.x, centre_cell.y)) {
+			
+			// find the empty edge around the cell, and occupy it
+			// so we can capture the cell in the current chain
+			for (int[] dif : Board.EDGE_DIFF) {
+				Point curr_ed = new Point(dif[0] + centre_cell.x,
+						dif[1] + centre_cell.y);
+				
+				if (board.getEdge(curr_ed.x, curr_ed.y) ==
+						Piece.EMPTY)
+				{
+					ret_move = new Move();
+					ret_move.Row = curr_ed.x;
+					ret_move.Col = curr_ed.y;
+					ret_move.P = board.getCurrTurn();
+					
+					return ret_move;
+				}
+			}
+		}
+		
+		return null;
 	}
 
 	@Override
