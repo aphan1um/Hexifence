@@ -1,9 +1,8 @@
 # Hexifence
 COMP30024 (Project B)
 
-This is an agent for an adversarial game, involving basic machine learning and AI algorithms.
-
-Written in Java.
+This is an agent written in Java for an adversarial game, involving basic machine learning
+and AI algorithms.
 
 Rules for the game can be found in game-spec-2016.pdf file, located in the root folder of
 the master repository.
