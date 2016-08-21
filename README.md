@@ -1,6 +1,10 @@
 # Hexifence
 COMP30024 (Project B)
 
+This is an agent for an adverserial game, involving basic machine learning and AI algorithms.
+Written in Java.
+
+
 Notes:
 - In the end game, you eventually have to start filling up edges where you will give up cells as a result. The agent should choose the ones where they give up the least number of cells and gain the most.
 - Chaining (blocking of the chain).
